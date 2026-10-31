@@ -116,6 +116,10 @@ details[open] summary::after{content:"–"}
 .erow{display:flex;align-items:center;gap:10px;padding:7px 0}
 .erow .n{flex:1;font-size:14px;min-width:0}
 .erow .n small{display:block;color:var(--ink-2);font-size:12px}
+.ebtn{background:none;border:none;text-align:left;padding:2px 0;font-weight:600}
+.chev{color:var(--muted);font-size:22px}
+.pledit{padding:4px 12px 14px 44px;display:grid;gap:8px;border-top:1px dashed var(--line)}
+.pledit .in{font-size:15px;padding:9px 11px}
 .in{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:10px 12px;width:100%;font-size:16px}
 .in.sm{width:120px;text-align:right;padding:8px 10px}
 .addrow{display:flex;gap:8px;margin-top:8px}
@@ -244,7 +248,7 @@ function b64ToBytes(b64) { const s = atob(b64); const u = new Uint8Array(s.lengt
 /* ---------- state ---------- */
 const KINDS = ['income', 'expenses', 'transfers'];
 const S = { setup: null, months: {}, meta: {}, file: null, prefs: {} }; // prefs: app-only settings (payday list, next payday) – kept when Excel is reloaded
-const UI = { tab: 'home', cycle: null, filter: 'all', scope: 'cycle', ready: false, q: '', locked: false };
+const UI = { tab: 'home', cycle: null, filter: 'all', scope: 'cycle', ready: false, q: '', locked: false, det: {} };
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
@@ -298,6 +302,7 @@ const Store = {
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
     if (getPin()) lockApp();
     UI.ready = true; render();
+    bioAvailable().then(v => { UI.bioAvail = v; if (UI.tab === 'excel' && !UI.locked) render(); });
   },
   put() { saveCache(); return Promise.resolve(); },
   putEverything() { saveCache(); return Promise.resolve(); }
@@ -758,6 +763,12 @@ function feeHint(a) {
   const s = suggestFee(a); if (s === null) return a > 0 ? 'Transfers under ₦5,000 are usually free.' : '';
   return `Usual for ${naira(a)}: <b>${naira(s)}</b>${a >= 10000 ? ' (bank fee + ₦50 stamp duty)' : ''}. Often free within the same bank or on fintech apps. <button type="button" class="linkbtn" style="display:inline;padding:0" data-fee="${s}">Use ${naira(s)}</button>`;
 }
+const TRANSFER_LIKE = ['Bank Transfer', 'USSD'];
+function hintFor(st, a) {
+  if (st.kind === 'transfers' || TRANSFER_LIKE.includes(st.v.method)) return feeHint(a);
+  if (st.kind === 'expenses') return st.v.method ? 'Pick the charge your bank deducted for this payment, if any.' : 'Pick the charge your bank deducted, if any. Cash payments have no charge, so this field is hidden when you pick Cash.';
+  return '';
+}
 function linkedCharge(id) { return allOf('expenses').find(x => x.feeFor === id); }
 function syncFee(kind, e, fee) {
   const existing = linkedCharge(e.id);
@@ -769,6 +780,68 @@ function syncFee(kind, e, fee) {
       method: kind === 'expenses' ? (e.method || '') : (S.setup.methods.includes('Bank Transfer') ? 'Bank Transfer' : ''), amount: fee };
     if (existing) updateEntry('expenses', ch); else addEntry('expenses', ch);
   } else if (existing) { removeEntry('expenses', existing.id); bumpPending(); }
+}
+
+/* ---------- rename / delete list items ---------- */
+const LISTS = {
+  categories: { one: 'category', name: x => x.name, refs: [['expenses', 'category']] },
+  accounts: { one: 'account', name: x => x.name, refs: [['income', 'account'], ['expenses', 'account'], ['transfers', 'from'], ['transfers', 'to']] },
+  sources: { one: 'income source', name: x => x, refs: [['income', 'source']] },
+  methods: { one: 'payment method', name: x => x, refs: [['expenses', 'method']] }
+};
+const acctTypes = () => [...new Set(['Bank', 'Wallet', 'Savings', ...S.setup.accounts.map(a => a.type).filter(Boolean)])];
+function usageCount(list, name) { return LISTS[list].refs.reduce((n, [k, f]) => n + allOf(k).filter(e => e[f] === name).length, 0); }
+// Point every entry (and the payday list, balance checks, remembered choices) at a new name.
+function moveRefs(list, from, to) {
+  for (const [k, f] of LISTS[list].refs) for (const [mk, m] of Object.entries(S.months)) {
+    let hit = false; for (const e of m[k]) if (e[f] === from) { e[f] = to; hit = true; }
+    if (list === 'accounts' && k === 'transfers') { const n = m[k].length; m[k] = m[k].filter(t => t.from !== t.to); if (m[k].length !== n) hit = true; }
+    if (hit) Store.put('m-' + mk);
+  }
+  if (Array.isArray(S.prefs.template)) {
+    for (const l of S.prefs.template) for (const [k, f] of LISTS[list].refs) if (l.kind === k && l[f] === from) l[f] = to;
+    S.prefs.template = S.prefs.template.filter(l => !(l.kind === 'transfers' && l.from === l.to));
+  }
+  if (list === 'accounts' && S.prefs.recon && S.prefs.recon[from]) { if (to && !S.prefs.recon[to]) S.prefs.recon[to] = S.prefs.recon[from]; delete S.prefs.recon[from]; }
+  const last = lsGet('mt-last'); if (last) { for (const o of Object.values(last)) for (const key of Object.keys(o)) if (o[key] === from) o[key] = to; lsSet('mt-last', last); }
+}
+function openEditItem(list, i) {
+  const L = LISTS[list], item = S.setup[list][i], name = L.name(item), used = usageCount(list, name);
+  const others = S.setup[list].map(L.name).filter(n => n !== name);
+  sheetCtx = { item: true, list, i, name, confirmDel: false };
+  openSheet(`<div class="phead"><h3>Edit ${L.one}</h3><button class="x" data-close>×</button></div>
+    <div class="fld"><label for="it-name">Name</label><input class="in" id="it-name" value="${esc(name)}" autocomplete="off"></div>
+    ${list === 'categories' ? `<div class="fld"><label for="it-budget">Monthly budget</label><input class="in" id="it-budget" inputmode="decimal" data-money value="${NF.format(item.budget)}"></div>` : ''}
+    ${list === 'accounts' ? `<div class="fld"><label for="it-type">Type</label><select class="in" id="it-type">${acctTypes().map(t => `<option ${t === item.type ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
+      <div class="fld"><label for="it-purpose">Purpose (optional)</label><input class="in" id="it-purpose" value="${esc(item.purpose || '')}"></div>` : ''}
+    <div class="err" id="it-err"></div>
+    <button class="btn" data-act="saveItem">Save</button>
+    <div style="margin-top:22px;border-top:1px solid var(--line);padding-top:14px">
+      <p class="note" style="margin:0 0 10px">${used ? `<b>${used} entr${used === 1 ? 'y uses' : 'ies use'} “${esc(name)}”.</b> To delete it, choose where ${used === 1 ? 'that entry goes' : 'they go'}:` : 'No entries use this, so it’s safe to delete.'}</p>
+      ${used ? `<select class="in" id="it-move" style="margin-bottom:10px">${list === 'methods' ? '<option value="">No payment method</option>' : ''}${others.map(n => `<option>${esc(n)}</option>`).join('')}</select>` : ''}
+      <button class="btn danger" data-act="deleteItem" ${used && !others.length && list !== 'methods' ? 'disabled' : ''}>Delete ${L.one}</button>
+    </div>`, sheetCtx);
+}
+function saveItem() {
+  const { list, i, name } = sheetCtx, L = LISTS[list], err = m => { $('#it-err').textContent = m; };
+  const nn = $('#it-name').value.trim().replace(/\s+/g, ' ');
+  if (!nn) return err('Give it a name.');
+  if (S.setup[list].some((x, j) => j !== i && L.name(x).toLowerCase() === nn.toLowerCase())) return err('There’s already one called “' + nn + '”.');
+  if (list === 'categories') { const b = readAmount($('#it-budget').value); if (isNaN(b) || b < 0) return err('Enter the budget as a number.'); S.setup.categories[i] = { name: nn, budget: b }; }
+  else if (list === 'accounts') S.setup.accounts[i] = { name: nn, type: $('#it-type').value, purpose: $('#it-purpose').value.trim() };
+  else S.setup[list][i] = nn;
+  if (nn !== name) moveRefs(list, name, nn);
+  bumpPending(); saveCache(); closeSheet(); render();
+  toast(nn !== name ? 'Renamed to “' + nn + '”' : 'Saved');
+}
+function deleteItem() {
+  const { list, i, name } = sheetCtx, L = LISTS[list];
+  if (!sheetCtx.confirmDel) { sheetCtx.confirmDel = true; const b = $('[data-act="deleteItem"]'); b.textContent = 'Tap again to delete “' + name + '”'; return; }
+  const used = usageCount(list, name), mv = $('#it-move');
+  if (used) moveRefs(list, name, mv ? mv.value : '');
+  S.setup[list].splice(i, 1);
+  bumpPending(); saveCache(); closeSheet(); render();
+  toast('Deleted “' + name + '”' + (used ? ' · ' + used + ' moved to ' + (mv && mv.value ? '“' + mv.value + '”' : 'no method') : ''));
 }
 
 /* ---------- balance check ---------- */
@@ -832,9 +905,10 @@ function drawPayday() {
     const ls = st.lines.filter(l => l.kind === k); if (!ls.length) return '';
     return `<div class="day">${label}</div><div class="list">${ls.map(l => `<div class="item pl ${l.on ? '' : 'off'}">
       <input type="checkbox" data-pl="on" data-uid="${l.uid}" ${l.on ? 'checked' : ''} aria-label="Include this payday">
-      <div class="mid"><div class="t1">${esc(retitle(lineTitle(l), st.date))}</div><div class="t2">${esc(lineSub(l))}</div></div>
+      <button class="mid ebtn" data-act="plToggle" data-uid="${l.uid}" style="font-weight:inherit"><div class="t1">${esc(retitle(lineTitle(l), st.date))}</div><div class="t2">${esc(lineSub(l))} · <span style="color:var(--accent);font-weight:700">${l.open ? 'done' : 'edit'}</span></div></button>
       <input class="in sm num" inputmode="decimal" data-pl="amount" data-uid="${l.uid}" value="${NF.format(l.amount)}" aria-label="Amount">
-      <button class="rm" data-act="plRemove" data-uid="${l.uid}" aria-label="Remove from list">×</button></div>`).join('')}</div>`;
+      <button class="rm" data-act="plRemove" data-uid="${l.uid}" aria-label="Remove from list">×</button></div>
+      ${l.open ? plEditor(l) : ''}`).join('')}</div>`;
   };
   $('#panel').innerHTML = `<div class="grab"></div>
     <div class="phead"><h3>Log payday</h3><button class="x" data-close>×</button></div>
@@ -847,18 +921,29 @@ function drawPayday() {
     <p class="note" id="pd-total" style="text-align:center">${tot.text}</p>
     ${st.lines.length ? '<button class="linkbtn" data-act="savePaydayOnly">Save list without logging</button>' : ''}`;
 }
+function plEditor(l) {
+  const sel = (field, opts, label) => `<select class="in" data-pl="${field}" data-uid="${l.uid}" aria-label="${label}">${opts.map(o => `<option ${o === l[field] ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+  const accts = S.setup.accounts.map(a => a.name);
+  return `<div class="pledit">
+    <input class="in" data-pl="desc" data-uid="${l.uid}" value="${esc(l.desc || '')}" placeholder="Description" aria-label="Description">
+    ${l.kind === 'expenses' ? sel('category', S.setup.categories.map(c => c.name), 'Category') + sel('account', accts, 'Paid from') : ''}
+    ${l.kind === 'income' ? sel('source', S.setup.sources, 'Source') + sel('account', accts, 'Received into') : ''}
+    ${l.kind === 'transfers' ? sel('from', accts, 'From') + sel('to', accts, 'To') : ''}
+  </div>`;
+}
+function syncPaydayHead() { const d = $('#pd-date'), r = $('#pd-remember'); if (d && d.value) sheetCtx.date = d.value; if (r) sheetCtx.remember = r.checked; }
 function refreshPaydayTotals() {
   const tot = paydayTotals(), b = $('[data-act="logPayday"]');
   if (b) { b.textContent = 'Log ' + tot.n + ' entr' + (tot.n === 1 ? 'y' : 'ies'); b.disabled = !tot.n; }
   const t = $('#pd-total'); if (t) t.textContent = tot.text;
 }
-function savePaydayTemplate() { S.prefs.template = sheetCtx.lines.map(({ on, uid, ...l }) => l); saveCache(); }
+function savePaydayTemplate() { S.prefs.template = sheetCtx.lines.map(({ on, uid, open, ...l }) => l); saveCache(); }
 function logPayday() {
   const st = sheetCtx, date = $('#pd-date').value;
   if (!date) { $('#pd-err').textContent = 'Pick the payday date.'; return; }
-  const on = st.lines.filter(l => l.on && l.amount > 0);
+  const on = st.lines.filter(l => l.on && l.amount > 0 && !(l.kind === 'transfers' && l.from === l.to));
   if (!on.length) return;
-  for (const l of on) { const { kind, on: _o, uid, ...f } = l; addEntry(kind, { ...f, desc: retitle(f.desc, date), amount: +l.amount, id: newId(), date }); }
+  for (const l of on) { const { kind, on: _o, uid, open, ...f } = l; addEntry(kind, { ...f, desc: retitle(f.desc, date), amount: +l.amount, id: newId(), date }); }
   if ($('#pd-remember').checked) savePaydayTemplate();
   if (S.prefs.nextPayday && S.prefs.nextPayday <= date) delete S.prefs.nextPayday; // that payday has arrived
   saveCache(); UI.cycle = null; UI.tab = 'home'; closeSheet(); render(); window.scrollTo(0, 0);
@@ -874,7 +959,33 @@ async function hashPin(pin, salt) {
   let x = 2166136261; for (const b of data) x = Math.imul(x ^ b, 16777619) >>> 0; return 'f' + x.toString(16);
 }
 let pinEntry = '', lockMode = 'pin';
-function lockApp() { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); drawLock(); $('#lock').hidden = false; render(); }
+/* fingerprint: a passkey kept by the phone; unlocking asks the phone to verify you (fingerprint or screen lock) */
+const BIO_KEY = 'mt-bio';
+const b64u = buf => bytesToB64(new Uint8Array(buf)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return b64ToBytes(s); };
+async function bioAvailable() { try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) { return false; } }
+async function enableBio() {
+  try {
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: 'Money Tracker' },
+      user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'Money Tracker', displayName: 'Money Tracker unlock' },
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+      timeout: 60000, attestation: 'none' } });
+    lsSet(BIO_KEY, { id: b64u(cred.rawId) }); render(); toast('Fingerprint unlock is on');
+  } catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Fingerprint setup was cancelled.' : 'Couldn’t set up fingerprint on this phone.', 4000); }
+}
+let bioBusy = false;
+async function bioUnlock() {
+  const b = lsGet(BIO_KEY); if (!b || bioBusy || !UI.locked) return; bioBusy = true;
+  try {
+    await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: 'public-key', id: unb64u(b.id) }], userVerification: 'required', timeout: 60000 } });
+    unlockApp();
+  } catch (e) { if (UI.locked && lockMode === 'pin') drawLock(e && e.name === 'NotAllowedError' ? '' : 'Fingerprint didn’t work. Use your PIN.'); }
+  finally { bioBusy = false; }
+}
+function unlockApp() { UI.locked = false; pinEntry = ''; $('#lock').hidden = true; render(); }
+function lockApp() { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); drawLock(); $('#lock').hidden = false; render(); if (lsGet(BIO_KEY)) setTimeout(bioUnlock, 350); }
 function drawLock(err = '') {
   const box = $('#lockbox');
   if (lockMode === 'forgot') {
@@ -888,6 +999,7 @@ function drawLock(err = '') {
     <h2>Enter PIN</h2>
     <div class="dots ${err ? 'shake' : ''}">${[0, 1, 2, 3].map(i => `<i class="${i < pinEntry.length ? 'f' : ''}"></i>`).join('')}</div>
     <div class="lk-err">${esc(err)}</div>
+    ${lsGet(BIO_KEY) ? '<button class="btn sec" data-act="bioUnlock" style="margin-top:6px">Use fingerprint</button>' : ''}
     <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-key="${n}">${n}</button>`).join('')}<button class="txt" data-act="forgotPin">Forgot?</button><button data-key="0">0</button><button class="txt" data-key="del" aria-label="Delete">⌫</button></div>`;
 }
 async function pressKey(k) {
@@ -896,7 +1008,7 @@ async function pressKey(k) {
   drawLock();
   if (pinEntry.length === 4) {
     const p = getPin(), h = await hashPin(pinEntry, p.salt);
-    if (h === p.hash) { UI.locked = false; pinEntry = ''; $('#lock').hidden = true; render(); }
+    if (h === p.hash) unlockApp();
     else { pinEntry = ''; drawLock('Wrong PIN, try again'); }
   }
 }
@@ -986,23 +1098,23 @@ function viewExcel() {
     </details>
   </section>
   <section class="card"><h2 style="margin-bottom:6px">Budgets &amp; lists</h2>
-    <details><summary>Monthly budgets</summary>
-      ${S.setup.categories.map((cat, i) => `<div class="erow"><div class="n">${esc(cat.name)}</div><input class="in sm num" inputmode="decimal" value="${cat.budget}" data-change="budget" data-i="${i}" aria-label="Budget for ${esc(cat.name)}"></div>`).join('')}
+    <p class="note" style="margin:0 0 4px">Tap a name to rename or delete it. Your existing entries update to match.</p>
+    <details data-det="cats" ${UI.det.cats ? 'open' : ''}><summary>Categories &amp; monthly budgets</summary>
+      ${S.setup.categories.map((cat, i) => `<div class="erow"><button class="n ebtn" data-act="editItem" data-list="categories" data-i="${i}">${esc(cat.name)}<small>${(n => n === 1 ? '1 entry' : n + ' entries')(usageCount('categories', cat.name))}</small></button><input class="in sm num" inputmode="decimal" value="${NF.format(cat.budget)}" data-change="budget" data-i="${i}" aria-label="Budget for ${esc(cat.name)}"></div>`).join('')}
       <div class="addrow"><input class="in" id="newCat" placeholder="New category"><button data-act="addCat">Add</button></div>
-      <p class="note">To rename or remove a category, change it in Excel, then load the file again.</p>
     </details>
-    <details><summary>Accounts</summary>
-      ${S.setup.accounts.map(a => `<div class="erow"><div class="n">${esc(a.name)}<small>${esc(a.type)}${a.purpose ? ' · ' + esc(a.purpose) : ''}</small></div></div>`).join('')}
-      <div class="addrow"><input class="in" id="newAcct" placeholder="New account"><select class="in" id="newAcctType" style="width:120px;flex:none">${[...new Set(['Bank', 'Wallet', 'Savings', ...S.setup.accounts.map(a => a.type).filter(Boolean)])].map(t => `<option>${esc(t)}</option>`).join('')}</select><button data-act="addAcct">Add</button></div>
+    <details data-det="accts" ${UI.det.accts ? 'open' : ''}><summary>Accounts</summary>
+      ${S.setup.accounts.map((a, i) => `<div class="erow"><button class="n ebtn" data-act="editItem" data-list="accounts" data-i="${i}">${esc(a.name)}<small>${esc(a.type)}${a.purpose ? ' · ' + esc(a.purpose) : ''}</small></button><span class="chev">›</span></div>`).join('')}
+      <div class="addrow"><input class="in" id="newAcct" placeholder="New account"><select class="in" id="newAcctType" style="width:120px;flex:none">${acctTypes().map(t => `<option>${esc(t)}</option>`).join('')}</select><button data-act="addAcct">Add</button></div>
       <p class="note">Moving money into a <b>Savings</b>-type account counts as saved.</p>
     </details>
-    <details><summary>Income sources &amp; payment methods</summary>
-      <div class="fld" style="margin-top:10px"><label>Income sources</label><div class="chips">${S.setup.sources.map(s => `<span class="chip">${esc(s)}</span>`).join('')}</div>
+    <details data-det="lists" ${UI.det.lists ? 'open' : ''}><summary>Income sources &amp; payment methods</summary>
+      <div class="fld" style="margin-top:10px"><label>Income sources</label><div class="chips">${S.setup.sources.map((s, i) => `<button class="chip" data-act="editItem" data-list="sources" data-i="${i}">${esc(s)}</button>`).join('')}</div>
       <div class="addrow"><input class="in" id="newSrc" placeholder="New source"><button data-act="addSrc">Add</button></div></div>
-      <div class="fld"><label>Payment methods</label><div class="chips">${S.setup.methods.map(s => `<span class="chip">${esc(s)}</span>`).join('')}</div>
+      <div class="fld"><label>Payment methods</label><div class="chips">${S.setup.methods.map((s, i) => `<button class="chip" data-act="editItem" data-list="methods" data-i="${i}">${esc(s)}</button>`).join('')}</div>
       <div class="addrow"><input class="in" id="newMeth" placeholder="New method"><button data-act="addMeth">Add</button></div></div>
     </details>
-    <details><summary>Near-limit warning</summary>
+    <details data-det="warn" ${UI.det.warn ? 'open' : ''}><summary>Near-limit warning</summary>
       <div class="erow"><div class="n">Warn when a budget is this full</div><select class="in" style="width:100px" data-change="warn">${[0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95].map(x => `<option value="${x}" ${Math.abs(x - S.setup.warn) < 1e-9 ? 'selected' : ''}>${Math.round(x * 100)}%</option>`).join('')}</select></div>
     </details>
     ${tooMany ? `<p class="note">Your Excel dashboard has rows for ${DASH_CAT_ROWS} categories and ${DASH_ACCT_ROWS} accounts. Extra ones are tracked here but won’t show on the Excel dashboard.</p>` : ''}
@@ -1011,8 +1123,10 @@ function viewExcel() {
     <p class="note" style="margin:0 0 12px">The salary, allowances, bills and transfers you log every payday, all in one tap. To add something, open it in Activity and tap <b>Add to payday list</b>.</p>
     <button class="btn sec" data-act="payday">Open payday list</button></section>
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2>${getPin() ? '<span class="badge ok">On</span>' : ''}</div>
-    <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your PIN when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
-    <button class="btn sec" data-act="setPin">${getPin() ? 'Change PIN' : 'Set a PIN'}</button>${getPin() ? '<button class="btn danger" data-act="removePin">Turn off PIN</button>' : ''}</section>
+    <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your ' + (lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN') + ' when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
+    ${getPin() && UI.bioAvail ? (lsGet(BIO_KEY) ? '<div class="kv" style="margin-bottom:10px"><span>Fingerprint unlock</span><span class="st ok">' + ICON.ok + ' On</span></div><button class="btn sec" data-act="disableBio">Turn off fingerprint</button>' : '<button class="btn" data-act="enableBio">Unlock with fingerprint too</button>') : ''}
+    <button class="btn sec" data-act="setPin">${getPin() ? 'Change PIN' : 'Set a PIN'}</button>${getPin() ? '<button class="btn danger" data-act="removePin">Turn off app lock</button>' : ''}
+    ${!getPin() && UI.bioAvail ? '<p class="note">After you set a PIN, you can unlock with your fingerprint too. The PIN stays as a backup.</p>' : ''}</section>
   <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>`;
 }
 
@@ -1073,11 +1187,12 @@ function drawForm() {
   else body = `
     <div class="fld"><label>From</label>${acctSelect('from', v.from, 'From account')}</div>
     <div class="fld"><label>To</label>${acctSelect('to', v.to, 'To account')}${acctType(v.to) === 'Savings' && acctType(v.from) !== 'Savings' ? '<div class="hint">Counts as saved</div>' : ''}</div>`;
-  if (k !== 'income' && !v.feeFor && v.category !== CHARGES) {
+  if (k === 'expenses' && v.method === 'Cash') { v.fee = 0; v.feeOther = false; }
+  if (k !== 'income' && !v.feeFor && v.category !== CHARGES && !(k === 'expenses' && v.method === 'Cash')) {
     const opts = [0, 10, 50, 60, 100], f = +v.fee || 0, other = v.feeOther || (f > 0 && !opts.includes(f));
     body += `<div class="fld"><label>Bank charge</label><div class="chips">${opts.map(o => `<button type="button" class="chip ${!other && f === o ? 'on' : ''}" data-fee="${o}">${o ? naira(o) : 'None'}</button>`).join('')}<button type="button" class="chip ${other ? 'on' : ''}" data-fee="other">Other</button></div>
       ${other ? `<input class="in" id="f-fee" inputmode="decimal" placeholder="Charge amount" value="${f ? NF.format(f) : ''}" data-money style="margin-top:8px">` : ''}
-      <div class="note" id="fee-hint" style="margin-top:6px">${k === 'transfers' || v.method === 'Bank Transfer' ? feeHint(+v.amount || 0) : ''}</div></div>`;
+      <div class="note" id="fee-hint" style="margin-top:6px">${hintFor(st, +v.amount || 0)}</div></div>`;
   }
   $('#panel').innerHTML = `<div class="grab"></div>
     <div class="phead"><h3>${st.editing ? 'Edit entry' : 'New entry'}</h3><button class="x" data-close>×</button></div>
@@ -1154,6 +1269,10 @@ document.addEventListener('click', ev => {
     if (S.prefs.template.some(l => JSON.stringify(l) === key)) { toast('Already on your payday list'); return; }
     S.prefs.template.push(line); saveCache(); closeSheet(); render(); toast('Added to your payday list');
   }
+  else if (a === 'editItem') openEditItem(t.dataset.list, +t.dataset.i);
+  else if (a === 'saveItem') saveItem();
+  else if (a === 'deleteItem') deleteItem();
+  else if (a === 'plToggle') { syncPaydayHead(); const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid); l.open = !l.open; drawPayday(); }
   else if (a === 'checkBal') openCheckBalance(t.dataset.name);
   else if (a === 'runCheck') runCheck(t.dataset.name);
   else if (a === 'reconLog' || a === 'reconIncome') {
@@ -1168,22 +1287,25 @@ document.addEventListener('click', ev => {
   else if (a === 'resetNextPayday') { delete S.prefs.nextPayday; saveCache(); closeSheet(); render(); }
   else if (a === 'setPin') openSetPin();
   else if (a === 'savePin') savePin();
-  else if (a === 'removePin') { try { localStorage.removeItem(PIN_KEY); } catch (e) {} render(); toast('PIN turned off'); }
+  else if (a === 'removePin') { try { localStorage.removeItem(PIN_KEY); localStorage.removeItem(BIO_KEY); } catch (e) {} render(); toast('App lock turned off'); }
+  else if (a === 'enableBio') enableBio();
+  else if (a === 'disableBio') { try { localStorage.removeItem(BIO_KEY); } catch (e) {} render(); toast('Fingerprint unlock is off. Your PIN still works.'); }
+  else if (a === 'bioUnlock') bioUnlock();
   else if (a === 'forgotPin') { lockMode = 'forgot'; drawLock(); }
   else if (a === 'lockBack') { lockMode = 'pin'; pinEntry = ''; drawLock(); }
   else if (a === 'resetApp') {
-    try { [CACHE_KEY, PIN_KEY, 'mt-last'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    try { [CACHE_KEY, PIN_KEY, BIO_KEY, 'mt-last'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
     applyAll({}); UI.locked = false; UI.cycle = null; UI.tab = 'home'; $('#lock').hidden = true; render(); toast('App reset. Load your Excel file to start again.', 4000);
   }
   else if (a === 'scope') { UI.scope = UI.scope === 'cycle' ? 'all' : 'cycle'; render(); }
   else if (a === 'edit') { const e = findEntry(t.dataset.kind, t.dataset.id); if (e) openForm(t.dataset.kind, e); }
   else if (a === 'saveEntry') saveForm();
   else if (a === 'delEntry') { if (!sheetCtx.confirmDel) { syncFormInputs(); sheetCtx.confirmDel = true; drawForm(); return; } const ch = linkedCharge(sheetCtx.editing); removeEntry(sheetCtx.kind, sheetCtx.editing); if (ch) removeEntry('expenses', ch.id); bumpPending(); closeSheet(); render(); toast(ch ? 'Deleted, with its bank charge' : 'Deleted'); }
-  else if (a === 'addCat') { const n = $('#newCat').value.trim(); if (!n) return; if (S.setup.categories.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That category already exists.'); S.setup.categories.push({ name: n, budget: 0 }); bumpPending(); render(); openDetails(0); toast('Category added — set its budget'); }
-  else if (a === 'addAcct') { const n = $('#newAcct').value.trim(), ty = $('#newAcctType').value; if (!n) return; if (S.setup.accounts.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That account already exists.'); S.setup.accounts.push({ name: n, type: ty, purpose: '' }); bumpPending(); render(); openDetails(1); toast('Account added'); }
-  else if (a === 'addSrc' || a === 'addMeth') { const id = a === 'addSrc' ? '#newSrc' : '#newMeth', key = a === 'addSrc' ? 'sources' : 'methods'; const n = $(id).value.trim(); if (!n || S.setup[key].includes(n)) return; S.setup[key].push(n); bumpPending(); render(); openDetails(2); }
+  else if (a === 'addCat') { const n = $('#newCat').value.trim(); if (!n) return; if (S.setup.categories.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That category already exists.'); S.setup.categories.push({ name: n, budget: 0 }); bumpPending(); UI.det.cats = true; render(); toast('Category added — set its budget'); }
+  else if (a === 'addAcct') { const n = $('#newAcct').value.trim(), ty = $('#newAcctType').value; if (!n) return; if (S.setup.accounts.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That account already exists.'); S.setup.accounts.push({ name: n, type: ty, purpose: '' }); bumpPending(); UI.det.accts = true; render(); toast('Account added'); }
+  else if (a === 'addSrc' || a === 'addMeth') { const id = a === 'addSrc' ? '#newSrc' : '#newMeth', key = a === 'addSrc' ? 'sources' : 'methods'; const n = $(id).value.trim(); if (!n || S.setup[key].includes(n)) return; S.setup[key].push(n); bumpPending(); UI.det.lists = true; render(); }
 });
-function openDetails(i) { const d = document.querySelectorAll('#view section:nth-of-type(2) details')[i]; if (d) d.open = true; }
+document.addEventListener('toggle', ev => { const d = ev.target; if (d.dataset && d.dataset.det) UI.det[d.dataset.det] = d.open; }, true);
 function syncFormInputs() {
   if (!sheetCtx || !sheetCtx.form) return;
   const v = sheetCtx.v, a = $('#f-amount'), d = $('#f-date'), s = $('#f-desc');
@@ -1200,6 +1322,11 @@ document.addEventListener('change', ev => {
     if (t.dataset.pl === 'on') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid); l.on = t.checked; t.closest('.pl').classList.toggle('off', !t.checked); refreshPaydayTotals(); return; }
     if (t.dataset.pl === 'amount') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid), n = readAmount(t.value); if (!isNaN(n) && n >= 0) l.amount = n; t.value = NF.format(l.amount); refreshPaydayTotals(); return; }
     if (t.id === 'pd-date' && t.value) { sheetCtx.date = t.value; sheetCtx.remember = $('#pd-remember').checked; drawPayday(); return; }
+    if (['desc', 'category', 'source', 'account', 'from', 'to'].includes(t.dataset.pl)) {
+      const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid); l[t.dataset.pl] = t.dataset.pl === 'desc' ? t.value.trim() : t.value;
+      if (l.kind === 'transfers' && l.from === l.to) toast('From and To are the same account. Change one of them.');
+      syncPaydayHead(); drawPayday(); return;
+    }
   }
   const c = t.dataset.change;
   if (c === 'cycle') { UI.cycle = t.value; render(); }
@@ -1209,7 +1336,7 @@ document.addEventListener('change', ev => {
 document.addEventListener('input', ev => {
   if (ev.target.id === 'q') { UI.q = ev.target.value; const r = $('#actResults'); if (r) r.innerHTML = activityResults(); return; }
   if (ev.target.dataset && ev.target.dataset.pl === 'amount' && sheetCtx && sheetCtx.payday) { const l = sheetCtx.lines.find(x => x.uid === ev.target.dataset.uid), n = readAmount(ev.target.value); if (l && !isNaN(n) && n >= 0) { l.amount = n; refreshPaydayTotals(); } return; }
-  if (ev.target.id === 'f-amount') { const h = $('#fee-hint'); if (h && sheetCtx && sheetCtx.form && (sheetCtx.kind === 'transfers' || sheetCtx.v.method === 'Bank Transfer')) h.innerHTML = feeHint(readAmount(ev.target.value) || 0); }
+  if (ev.target.id === 'f-amount') { const h = $('#fee-hint'); if (h && sheetCtx && sheetCtx.form) h.innerHTML = hintFor(sheetCtx, readAmount(ev.target.value) || 0); }
   if (ev.target.id === 'f-amount' || (ev.target.hasAttribute && ev.target.hasAttribute('data-money'))) { const el = ev.target, raw = el.value.replace(/[^\d.]/g, ''); const [i, d] = raw.split('.'); const f = (i ? NF.format(+i) : '') + (d !== undefined ? '.' + d.slice(0, 2) : ''); if (f !== el.value) el.value = f; }
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.addrow')) ev.target.closest('.addrow').querySelector('button').click(); });
