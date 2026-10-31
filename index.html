@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6e4f">
+<title>Money Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Money">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="jszip.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f3f2ee; --surface:#fcfcfb; --surface-2:#f0efea; --ink:#0b0b0b; --ink-2:#52514e; --muted:#85847e; --line:#e3e1db;
+  --accent:#0b6e4f; --accent-ink:#ffffff; --accent-soft:#e1efe8; --income:#0b7a3e;
+  --bar:#2a78d6; --good:#0ca30c; --warn:#fab219; --crit:#d03b3b; --track:#e9e7e1;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --r:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#111110; --surface:#1a1a19; --surface-2:#232321; --ink:#f0efec; --ink-2:#c3c2b7; --muted:#8f8e86; --line:#2d2c2a;
+    --accent:#2fa57a; --accent-ink:#06140e; --accent-soft:#16301f; --income:#4cc38a;
+    --bar:#3987e5; --track:#2a2a28; --shadow:none;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.4}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+#app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 6px}
+header.top h1{font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em}
+.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);padding:5px 10px;border-radius:999px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.ok i{background:var(--good)} .sync.warn i{background:var(--warn)} .sync.err i{background:var(--crit)}
+main{padding:6px 14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:12px 0;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0;font-weight:700}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.card-head small{color:var(--ink-2);font-size:13px}
+.cycle{display:flex;align-items:center;gap:10px;margin:4px 2px 0}
+.cycle label{font-size:13px;color:var(--ink-2);white-space:nowrap}
+select.pill{appearance:none;-webkit-appearance:none;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2385847e' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid var(--line);border-radius:999px;padding:8px 34px 8px 14px;font-weight:600;font-size:14px;max-width:100%}
+.hero{background:var(--accent);color:var(--accent-ink);border:none}
+.hero .lbl{font-size:13px;opacity:.85;font-weight:600}
+.hero .big{font-size:38px;font-weight:800;letter-spacing:-.03em;margin:2px 0 2px}
+.hero .sub{font-size:12.5px;opacity:.8}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
+.kpi{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}
+@media (prefers-color-scheme: dark){.kpi{background:rgba(0,0,0,.14)}}
+.kpi .k{font-size:12px;opacity:.85;font-weight:600}
+.kpi .v{font-size:17px;font-weight:800;margin-top:2px}
+.brow{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 0;border-top:1px solid var(--line)}
+.brow:first-of-type{border-top:none;padding-top:0}
+.brow .l1{display:flex;justify-content:space-between;gap:8px;font-size:14.5px}
+.brow .l1 b{font-weight:700}
+.brow .l2{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--ink-2);margin-top:6px}
+.track{height:8px;background:var(--track);border-radius:4px;margin-top:8px;overflow:hidden}
+.fill{height:100%;border-radius:4px}
+.st{display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.st svg{width:13px;height:13px}
+.st.ok{color:var(--ink-2)} .st.near{color:var(--ink)} .st.over{color:var(--crit)}
+.hbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:6px 0}
+.hbar .nm{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar .vl{font-size:13px;color:var(--ink-2);text-align:right}
+.hbar .tr{grid-column:1/-1;height:10px}
+.hbar .tr span{display:block;height:100%;background:var(--bar);border-radius:0 4px 4px 0;min-width:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:600}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 2px;scrollbar-width:none}
+.filters .chip{flex:none;white-space:nowrap}
+.more{background:none;border:none;border-top:1px solid var(--line);width:100%;padding:12px 0 0;font-weight:700;font-size:14px;color:var(--accent);text-align:left}
+.day{font-size:12.5px;font-weight:700;color:var(--ink-2);margin:16px 4px 6px;text-transform:uppercase;letter-spacing:.04em}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;width:100%;background:none;border:none;border-top:1px solid var(--line);padding:12px 14px;text-align:left}
+.item:first-child{border-top:none}
+.ico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--surface-2);font-weight:800;font-size:14px;color:var(--ink-2)}
+.ico.inc{background:var(--accent-soft);color:var(--income)}
+.item .mid{flex:1;min-width:0}
+.item .t1{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t2{font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .amt{font-weight:700;font-size:14.5px;white-space:nowrap}
+.amt.inc{color:var(--income)} .amt.tr{color:var(--ink-2)}
+.acct{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.acct .t2{font-size:12.5px;color:var(--ink-2)}
+.tot{display:flex;justify-content:space-between;font-weight:700;padding-top:10px;margin-top:4px;border-top:1px solid var(--line)}
+.empty{text-align:center;color:var(--ink-2);padding:28px 16px;font-size:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:14px;padding:14px 16px;font-weight:700;font-size:15.5px;background:var(--accent);color:var(--accent-ink)}
+.btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:none;color:var(--crit);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+.btn + .btn{margin-top:10px}
+.note{font-size:13px;color:var(--ink-2);margin:10px 2px 0}
+.badge{display:inline-block;background:var(--warn);color:#1c1300;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:800}
+.badge.ok{background:var(--accent-soft);color:var(--income)}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0}
+.kv span:first-child{color:var(--ink-2)}
+details{border-top:1px solid var(--line);padding:12px 0 2px}
+details:first-of-type{border-top:none}
+summary{font-weight:700;font-size:14.5px;list-style:none;display:flex;justify-content:space-between;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--muted);font-weight:600}
+details[open] summary::after{content:"–"}
+.steps{margin:10px 0 4px;padding-left:20px;font-size:14px;color:var(--ink-2)}
+.steps li{margin:4px 0}
+.erow{display:flex;align-items:center;gap:10px;padding:7px 0}
+.erow .n{flex:1;font-size:14px;min-width:0}
+.erow .n small{display:block;color:var(--ink-2);font-size:12px}
+.in{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:10px 12px;width:100%;font-size:16px}
+.in.sm{width:120px;text-align:right;padding:8px 10px}
+.addrow{display:flex;gap:8px;margin-top:8px}
+.addrow .in{flex:1}
+.addrow button{flex:none;border:none;background:var(--ink);color:var(--surface);border-radius:11px;padding:0 14px;font-weight:700}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:5}
+nav.tabs .wrap{display:flex;max-width:560px;width:100%}
+nav.tabs button{flex:1;background:none;border:none;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--muted);position:relative}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--ink)}
+nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;height:16px;border-radius:8px;background:var(--warn);color:#1c1300;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(76px + env(safe-area-inset-bottom));width:60px;height:60px;border-radius:20px;border:none;background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 20px rgba(11,110,79,.35);display:grid;place-items:center;z-index:6}
+.fab svg{width:28px;height:28px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
+.overlay.open{opacity:1;pointer-events:auto}
+.panel{background:var(--surface);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:8px 18px calc(22px + env(safe-area-inset-bottom));transform:translateY(24px);transition:transform .2s}
+.overlay.open .panel{transform:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.phead h3{margin:0;font-size:18px;font-weight:800}
+.x{background:var(--surface-2);border:none;width:34px;height:34px;border-radius:50%;font-size:18px;line-height:1}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface-2);border-radius:12px;padding:4px;margin-bottom:16px}
+.seg button{border:none;background:none;border-radius:9px;padding:9px 0;font-weight:700;font-size:14px;color:var(--ink-2)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.amtwrap{display:flex;align-items:center;gap:6px;border-bottom:2px solid var(--line);padding:4px 0 8px;margin-bottom:16px}
+.amtwrap span{font-size:30px;font-weight:800;color:var(--muted)}
+.amtwrap input{border:none;background:none;font-size:36px;font-weight:800;width:100%;outline:none;letter-spacing:-.02em}
+.fld{margin-bottom:16px}
+.fld > label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em}
+.err{color:var(--crit);font-size:13px;font-weight:600;margin:-6px 0 12px;min-height:0}
+.hint{font-size:12.5px;color:var(--income);font-weight:600;margin-top:6px}
+#toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .2s;z-index:30;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.welcome h2{font-size:22px;letter-spacing:-.02em}
+.welcome p{color:var(--ink-2);font-size:14.5px}
+.skel{height:120px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;animation:sh 1.2s infinite;margin:12px 0}
+@keyframes sh{to{background-position:-200% 0}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <h1>Money Tracker</h1>
+    <div class="sync" id="sync"><i></i><span>Loading…</span></div>
+  </header>
+  <main id="view"><div class="skel"></div><div class="skel"></div></main>
+</div>
+<button class="fab" id="fab" aria-label="Add entry" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<nav class="tabs" id="tabs" hidden><div class="wrap">
+  <button data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</button>
+  <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>Activity</button>
+  <button data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 15h2"/></svg>Accounts</button>
+  <button data-tab="excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M9 8l6 8M15 8l-6 8"/></svg>Excel</button>
+</div></nav>
+<div class="overlay" id="overlay"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status"></div>
+<input type="file" id="fileIn" class="sr" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const NF = new Intl.NumberFormat('en-NG', {maximumFractionDigits: 2});
+const naira = n => (n < 0 ? '−' : '') + '₦' + NF.format(Math.abs(Math.round((+n || 0) * 100) / 100));
+const pctTxt = p => Math.round(p * 100) + '%';
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const pad = n => String(n).padStart(2, '0');
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const isoParts = iso => iso.split('-').map(Number);
+const fmtDay = iso => { const [y,m,d] = isoParts(iso); const w = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); return DOW[w] + ' ' + d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
+const fmtShort = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1] + ' ' + y; };
+const addDays = (iso, n) => { const [y,m,d] = isoParts(iso); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const serialToISO = n => new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000).toISOString().slice(0, 10);
+const isoToSerial = iso => { const [y,m,d] = isoParts(iso); return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000; };
+const fmtStamp = s => { if (!s) return 'never'; const d = new Date(s); return d.getDate() + ' ' + MON[d.getMonth()] + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), ms); }
+function bytesToB64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function b64ToBytes(b64) { const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+
+/* ---------- state ---------- */
+const KINDS = ['income', 'expenses', 'transfers'];
+const S = { setup: null, months: {}, meta: {}, file: null };
+const UI = { tab: 'home', cycle: null, filter: 'all', scope: 'cycle', ready: false };
+const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
+
+function allOf(kind) { const out = []; for (const k of Object.keys(S.months).sort()) for (const e of (S.months[k][kind] || [])) out.push(e); return out; }
+function acctType(name) { const a = (S.setup?.accounts || []).find(x => x.name === name); return a ? a.type : ''; }
+function salaryDates() { return [...new Set(allOf('income').filter(e => e.source === 'Salary').map(e => e.date))].sort().reverse(); }
+function cycleRange() {
+  const sd = salaryDates();
+  const start = (UI.cycle && sd.includes(UI.cycle)) ? UI.cycle : sd[0];
+  if (!start) { const t = todayISO(); return { start: t.slice(0, 8) + '01', end: null, nosalary: true }; }
+  const next = sd.filter(d => d > start).sort()[0];
+  return { start, end: next ? addDays(next, -1) : null };
+}
+const inRange = (d, r) => d >= r.start && (!r.end || d <= r.end);
+const sum = a => a.reduce((s, e) => s + (+e.amount || 0), 0);
+
+function compute(r) {
+  const inc = allOf('income'), exp = allOf('expenses'), tr = allOf('transfers');
+  const I = inc.filter(e => inRange(e.date, r)), E = exp.filter(e => inRange(e.date, r)), T = tr.filter(e => inRange(e.date, r));
+  const income = sum(I), spent = sum(E);
+  const saved = sum(T.filter(t => acctType(t.to) === 'Savings')) - sum(T.filter(t => acctType(t.from) === 'Savings'));
+  const warn = S.setup.warn ?? 0.8;
+  const cats = S.setup.categories.map(c => {
+    const sp = sum(E.filter(e => e.category === c.name)), b = +c.budget || 0;
+    const pct = b === 0 ? (sp > 0 ? 1 : 0) : sp / b;
+    const status = sp > b ? 'over' : (b > 0 && pct >= warn ? 'near' : 'ok');
+    return { name: c.name, budget: b, spent: sp, remaining: b - sp, pct, status };
+  });
+  const catSpent = cats.reduce((s, c) => s + c.spent, 0);
+  const accts = S.setup.accounts.map(a => {
+    const mIn = sum(I.filter(e => e.account === a.name)) + sum(T.filter(t => t.to === a.name));
+    const mOut = sum(E.filter(e => e.account === a.name)) + sum(T.filter(t => t.from === a.name));
+    const bal = sum(inc.filter(e => e.account === a.name)) + sum(tr.filter(t => t.to === a.name)) - sum(exp.filter(e => e.account === a.name)) - sum(tr.filter(t => t.from === a.name));
+    return { ...a, mIn, mOut, net: mIn - mOut, bal };
+  });
+  return { I, E, T, income, spent, saved, left: income - spent - saved, rate: income ? saved / income : 0, cats, uncategorised: spent - catSpent, accts,
+    budgetTotal: cats.reduce((s, c) => s + c.budget, 0) };
+}
+
+/* ---------- storage: everything lives on this phone ---------- */
+const CACHE_KEY = 'mt-data-v1';
+const Store = {
+  mode: 'local',
+  init() {
+    const cache = lsGet(CACHE_KEY);
+    if (cache && cache.setup) applyAll(cache);
+    // Ask the browser to keep this app's data even when space runs low.
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    UI.ready = true; render();
+  },
+  put() { saveCache(); return Promise.resolve(); },
+  putEverything() { saveCache(); return Promise.resolve(); }
+};
+function applyAll(o) { S.setup = o.setup || null; S.months = o.months || {}; S.meta = o.meta || {}; S.file = o.file || null; }
+function saveCache() {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ setup: S.setup, months: S.months, meta: S.meta, file: S.file })); }
+  catch (e) { toast('Couldn’t save on this phone (storage full or blocked). Save to Excel now.', 6000); }
+  updateSyncPill();
+}
+function updateSyncPill() {
+  const el = $('#sync'), p = (S.meta && S.meta.pending) || 0;
+  if (!S.setup) { el.className = 'sync'; el.querySelector('span').textContent = 'Not set up'; return; }
+  el.className = 'sync ' + (p ? 'warn' : 'ok');
+  el.querySelector('span').textContent = p ? p + ' not in Excel' : 'Backed up to Excel';
+}
+
+/* ---------- mutations ---------- */
+const monthOf = d => d.slice(0, 7);
+function bumpPending() { S.meta.pending = (S.meta.pending || 0) + 1; Store.put('setup'); }
+function addEntry(kind, e) { const k = monthOf(e.date); (S.months[k] ||= { income: [], expenses: [], transfers: [] })[kind].push(e); Store.put('m-' + k); bumpPending(); }
+function removeEntry(kind, id) {
+  for (const [k, m] of Object.entries(S.months)) { const i = m[kind].findIndex(e => e.id === id); if (i >= 0) { m[kind].splice(i, 1); if (!KINDS.some(x => m[x].length)) delete S.months[k]; Store.put('m-' + k); return k; } }
+}
+function updateEntry(kind, e) {
+  const k = monthOf(e.date), m = S.months[k];
+  const i = m ? m[kind].findIndex(x => x.id === e.id) : -1;
+  if (i >= 0) { m[kind][i] = e; Store.put('m-' + k); }
+  else { removeEntry(kind, e.id); (S.months[k] ||= { income: [], expenses: [], transfers: [] })[kind].push(e); Store.put('m-' + k); }
+  bumpPending();
+}
+
+/* ---------- xlsx: read & write the user's own workbook ---------- */
+const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+const NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const colNum = L => L.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+const colLet = n => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+const parseRef = r => { const m = /^\$?([A-Z]+)\$?(\d+)$/.exec(r); return { c: colNum(m[1]), r: +m[2] }; };
+const parseRange = ref => { const [a, b] = ref.split(':'); const A = parseRef(a), B = parseRef(b || a); return { c1: A.c, r1: A.r, c2: B.c, r2: B.r }; };
+function joinPath(dir, target) {
+  if (target.startsWith('/')) return target.slice(1);
+  const out = []; for (const p of (dir + target).split('/')) { if (p === '..') out.pop(); else if (p && p !== '.') out.push(p); } return out.join('/');
+}
+const kids = (el, name) => [...el.children].filter(c => c.localName === name);
+
+async function openBook(zip) {
+  const P = new DOMParser();
+  const xml = async p => { const f = zip.file(p); return f ? P.parseFromString(await f.async('string'), 'application/xml') : null; };
+  const book = { zip, xml, docs: {}, sheets: {}, tables: {}, names: {}, sst: [] };
+  book.wb = await xml('xl/workbook.xml'); if (!book.wb) throw new Error('not-xlsx');
+  const rels = await xml('xl/_rels/workbook.xml.rels'); book.rels = rels;
+  const rmap = {}; for (const r of rels.getElementsByTagName('Relationship')) rmap[r.getAttribute('Id')] = joinPath('xl/', r.getAttribute('Target'));
+  for (const s of book.wb.getElementsByTagNameNS(NS_MAIN, 'sheet')) book.sheets[s.getAttribute('name')] = rmap[s.getAttributeNS(NS_R, 'id') || s.getAttribute('r:id')];
+  for (const dn of book.wb.getElementsByTagNameNS(NS_MAIN, 'definedName')) book.names[dn.getAttribute('name')] = dn.textContent;
+  const ss = await xml('xl/sharedStrings.xml');
+  if (ss) for (const si of ss.getElementsByTagNameNS(NS_MAIN, 'si')) { let t = ''; for (const n of si.getElementsByTagNameNS(NS_MAIN, 't')) if (n.parentNode.localName !== 'rPh') t += n.textContent; book.sst.push(t); }
+  for (const [sname, spath] of Object.entries(book.sheets)) {
+    if (!spath) continue;
+    const cut = spath.lastIndexOf('/') + 1, dir = spath.slice(0, cut);
+    const sr = await xml(dir + '_rels/' + spath.slice(cut) + '.rels'); if (!sr) continue;
+    for (const r of sr.getElementsByTagName('Relationship')) {
+      if (!/\/table$/.test(r.getAttribute('Type'))) continue;
+      const tpath = joinPath(dir, r.getAttribute('Target')); const td = await xml(tpath); if (!td) continue;
+      const t = td.documentElement;
+      const cols = [...td.getElementsByTagNameNS(NS_MAIN, 'tableColumn')].map(c => { const f = c.getElementsByTagNameNS(NS_MAIN, 'calculatedColumnFormula')[0]; return { name: c.getAttribute('name'), formula: f ? f.textContent : null }; });
+      book.tables[t.getAttribute('name')] = { ref: t.getAttribute('ref'), cols, path: tpath, doc: td, sheet: sname, sheetPath: spath };
+    }
+  }
+  return book;
+}
+async function sheetDoc(book, path) { if (!book.docs[path]) book.docs[path] = await book.xml(path); return book.docs[path]; }
+function cellVal(book, c) {
+  const t = c.getAttribute('t');
+  if (t === 'inlineStr') return [...c.getElementsByTagNameNS(NS_MAIN, 't')].map(x => x.textContent).join('');
+  const v = c.getElementsByTagNameNS(NS_MAIN, 'v')[0]; if (!v) return null;
+  const s = v.textContent;
+  if (t === 's') return book.sst[+s] ?? '';
+  if (t === 'e') return null;
+  if (t === 'str') return s;
+  if (t === 'b') return s === '1';
+  const n = parseFloat(s); return isNaN(n) ? s : n;
+}
+async function cellMap(book, path) {
+  book.cells ||= {};
+  if (!book.cells[path]) { const doc = await sheetDoc(book, path); const m = {}; for (const c of doc.getElementsByTagNameNS(NS_MAIN, 'c')) m[c.getAttribute('r')] = cellVal(book, c); book.cells[path] = m; }
+  return book.cells[path];
+}
+async function readTable(book, name) {
+  const t = book.tables[name]; if (!t) return null;
+  const cells = await cellMap(book, t.sheetPath); const g = parseRange(t.ref); const rows = [];
+  for (let r = g.r1 + 1; r <= g.r2; r++) {
+    const o = {}; let any = false;
+    t.cols.forEach((col, i) => { const v = cells[colLet(g.c1 + i) + r]; o[col.name] = v; if (v !== null && v !== undefined && v !== '') any = true; });
+    if (any) rows.push(o);
+  }
+  return rows;
+}
+function nameTarget(book, name) {
+  const v = book.names[name]; if (!v) return null;
+  const m = /^'?(.+?)'?!\$?([A-Z]+)\$?(\d+)$/.exec(v); if (!m) return null;
+  return { sheet: m[1].replace(/''/g, "'"), ref: m[2] + m[3] };
+}
+async function findValidationCell(book, sheetName, listName) {
+  const path = book.sheets[sheetName]; if (!path) return null;
+  const doc = await sheetDoc(book, path);
+  for (const dv of doc.getElementsByTagNameNS(NS_MAIN, 'dataValidation')) { const f = dv.getElementsByTagNameNS(NS_MAIN, 'formula1')[0]; if (f && f.textContent.trim() === listName) return dv.getAttribute('sqref').split(' ')[0].split(':')[0]; }
+  return null;
+}
+
+async function parseWorkbook(buf) {
+  if (!window.JSZip) throw new Error('The Excel reader didn’t load. Check your internet connection and try again.');
+  let zip; try { zip = await JSZip.loadAsync(buf); } catch (e) { throw new Error('That file isn’t an Excel workbook (.xlsx).'); }
+  let book; try { book = await openBook(zip); } catch (e) { throw new Error('That file isn’t an Excel workbook (.xlsx).'); }
+  const need = ['tblIncome', 'tblExpenses', 'tblTransfers', 'tblCategories', 'tblAccounts'];
+  const missing = need.filter(n => !book.tables[n]);
+  if (missing.length) throw new Error('This doesn’t look like your Finance Tracker. It’s missing: ' + missing.join(', ') + '.');
+  const str = v => v == null ? '' : String(v).trim();
+  const num = v => typeof v === 'number' ? v : (parseFloat(String(v ?? '').replace(/[₦,\s]/g, '')) || 0);
+  const date = v => typeof v === 'number' ? serialToISO(v) : (/^\d{4}-\d{2}-\d{2}/.test(str(v)) ? str(v).slice(0, 10) : null);
+  let skipped = 0;
+  const ok = (d, a) => { if (!d || !(a > 0)) { skipped++; return false; } return true; };
+  const categories = (await readTable(book, 'tblCategories')).filter(r => str(r['Category'])).map(r => ({ name: str(r['Category']), budget: num(r['Monthly Budget']) }));
+  const accounts = (await readTable(book, 'tblAccounts')).filter(r => str(r['Account'])).map(r => ({ name: str(r['Account']), type: str(r['Type']), purpose: str(r['Purpose']) }));
+  const sources = ((await readTable(book, 'tblSources')) || []).map(r => str(r['Income Source'])).filter(Boolean);
+  const methods = ((await readTable(book, 'tblPayMethods')) || []).map(r => str(r['Payment Method'])).filter(Boolean);
+  let warn = 0.8; const wt = nameTarget(book, 'WarnThreshold');
+  if (wt && book.sheets[wt.sheet]) { const v = (await cellMap(book, book.sheets[wt.sheet]))[wt.ref]; if (typeof v === 'number' && v > 0 && v <= 1.5) warn = v; }
+  const income = [], expenses = [], transfers = [];
+  for (const r of await readTable(book, 'tblIncome')) { const d = date(r['Date']), a = num(r['Amount']); if (ok(d, a)) income.push({ id: newId(), date: d, source: str(r['Source']), account: str(r['Received Into']), desc: str(r['Description']), amount: a }); }
+  for (const r of await readTable(book, 'tblExpenses')) { const d = date(r['Date']), a = num(r['Amount']); if (ok(d, a)) expenses.push({ id: newId(), date: d, category: str(r['Category']), desc: str(r['Description']), account: str(r['Paid From']), method: str(r['Payment Method']), amount: a }); }
+  for (const r of await readTable(book, 'tblTransfers')) { const d = date(r['Date']), a = num(r['Amount']); if (ok(d, a)) transfers.push({ id: newId(), date: d, from: str(r['From Account']), to: str(r['To Account']), desc: str(r['Description']), amount: a }); }
+  let cycle = null; const cRef = await findValidationCell(book, 'Dashboard', 'SalaryDates');
+  if (cRef) { const v = (await cellMap(book, book.sheets['Dashboard']))[cRef]; if (typeof v === 'number') cycle = serialToISO(v); }
+  return { setup: { categories, accounts, sources: sources.length ? sources : ['Salary'], methods, warn }, income, expenses, transfers, skipped, cycle };
+}
+
+/* --- writing --- */
+const el = (doc, name) => doc.createElementNS(NS_MAIN, name);
+function findRow(sd, r) { for (const row of sd.children) if (+row.getAttribute('r') === r) return row; return null; }
+function getRow(doc, sd, r) {
+  let row = findRow(sd, r); if (row) return row;
+  row = el(doc, 'row'); row.setAttribute('r', r);
+  const after = [...sd.children].find(x => +x.getAttribute('r') > r);
+  sd.insertBefore(row, after || null); return row;
+}
+function getCell(doc, row, c, r) {
+  for (const x of row.children) { const cc = parseRef(x.getAttribute('r')).c; if (cc === c) return x; }
+  const cell = el(doc, 'c'); cell.setAttribute('r', colLet(c) + r);
+  const after = [...row.children].find(x => parseRef(x.getAttribute('r')).c > c);
+  row.insertBefore(cell, after || null); return cell;
+}
+function fillCell(doc, c, val, formula) {
+  while (c.firstChild) c.removeChild(c.firstChild);
+  c.removeAttribute('t');
+  if (formula) { c.setAttribute('t', 'str'); const f = el(doc, 'f'); f.textContent = formula; c.appendChild(f); const v = el(doc, 'v'); v.textContent = val ?? ''; c.appendChild(v); return; }
+  if (val == null || val === '') return;
+  if (typeof val === 'object' && val.date) { const v = el(doc, 'v'); v.textContent = isoToSerial(val.date); c.appendChild(v); return; }
+  if (typeof val === 'number') { const v = el(doc, 'v'); v.textContent = String(val); c.appendChild(v); return; }
+  c.setAttribute('t', 'inlineStr'); const is = el(doc, 'is'), t = el(doc, 't');
+  t.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve'); t.textContent = String(val);
+  is.appendChild(t); c.appendChild(is);
+}
+function updateDimension(doc, sd) {
+  let maxR = 1, maxC = 1;
+  for (const row of sd.children) for (const c of row.children) { const p = parseRef(c.getAttribute('r')); if (p.r > maxR) maxR = p.r; if (p.c > maxC) maxC = p.c; }
+  const dim = doc.getElementsByTagNameNS(NS_MAIN, 'dimension')[0]; if (dim) dim.setAttribute('ref', 'A1:' + colLet(maxC) + maxR);
+}
+function stretchSqref(sq, firstRow, c1, c2, end) {
+  return sq.split(/\s+/).map(tok => {
+    const m = /^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/.exec(tok); if (!m) return tok;
+    const a = colNum(m[1]), b = colNum(m[3] || m[1]), r1 = +m[2], r2 = +(m[4] || m[2]);
+    if (r1 !== firstRow || a < c1 || b > c2 || r2 >= end) return tok;
+    return m[1] + r1 + ':' + (m[3] || m[1]) + end;
+  }).join(' ');
+}
+async function writeTable(book, name, records) {
+  const t = book.tables[name]; if (!t) return;
+  const doc = await sheetDoc(book, t.sheetPath);
+  const sd = doc.getElementsByTagNameNS(NS_MAIN, 'sheetData')[0];
+  const g = parseRange(t.ref), ncol = g.c2 - g.c1 + 1;
+  const firstRow = findRow(sd, g.r1 + 1);
+  const styles = [];
+  for (let i = 0; i < ncol; i++) { let s = null; if (firstRow) for (const x of firstRow.children) if (parseRef(x.getAttribute('r')).c === g.c1 + i) s = x.getAttribute('s'); styles.push(s); }
+  for (let r = g.r1 + 1; r <= g.r2; r++) {
+    const row = findRow(sd, r); if (!row) continue;
+    for (const c of [...row.children]) { const cc = parseRef(c.getAttribute('r')).c; if (cc >= g.c1 && cc <= g.c2) row.removeChild(c); }
+    row.removeAttribute('spans');
+  }
+  const n = records.length, end = g.r1 + Math.max(n, 1);
+  for (let k = 0; k < Math.max(n, 1); k++) {
+    const r = g.r1 + 1 + k, row = getRow(doc, sd, r); row.removeAttribute('spans');
+    t.cols.forEach((col, i) => {
+      const c = getCell(doc, row, g.c1 + i, r); if (styles[i]) c.setAttribute('s', styles[i]);
+      fillCell(doc, c, n ? records[k][col.name] : null, col.formula);
+    });
+  }
+  const newRef = colLet(g.c1) + g.r1 + ':' + colLet(g.c2) + end;
+  t.doc.documentElement.setAttribute('ref', newRef);
+  const af = t.doc.getElementsByTagNameNS(NS_MAIN, 'autoFilter')[0]; if (af) af.setAttribute('ref', newRef);
+  t.ref = newRef; t.dirty = true;
+  for (const dv of doc.getElementsByTagNameNS(NS_MAIN, 'dataValidation')) dv.setAttribute('sqref', stretchSqref(dv.getAttribute('sqref'), g.r1 + 1, g.c1, g.c2, end));
+  for (const sq of doc.getElementsByTagName('*')) if (sq.localName === 'sqref' && sq.parentNode.localName === 'dataValidation') sq.textContent = stretchSqref(sq.textContent, g.r1 + 1, g.c1, g.c2, end);
+  updateDimension(doc, sd);
+}
+async function setCellValue(book, sheet, ref, val) {
+  const path = book.sheets[sheet]; if (!path) return;
+  const doc = await sheetDoc(book, path), sd = doc.getElementsByTagNameNS(NS_MAIN, 'sheetData')[0], p = parseRef(ref);
+  const row = getRow(doc, sd, p.r); const c = getCell(doc, row, p.c, p.r); fillCell(doc, c, val, null); updateDimension(doc, sd);
+}
+const serialize = d => { let s = new XMLSerializer().serializeToString(d); if (!s.startsWith('<?xml')) s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + s; return s; };
+const stableByDate = a => a.map((e, i) => [e, i]).sort((x, y) => x[0].date < y[0].date ? -1 : x[0].date > y[0].date ? 1 : x[1] - y[1]).map(x => x[0]);
+
+async function buildWorkbook() {
+  if (!window.JSZip) throw new Error('The Excel writer didn’t load. Check your internet connection.');
+  const zip = await JSZip.loadAsync(b64ToBytes(S.file.b64));
+  const book = await openBook(zip);
+  const D = e => ({ date: e.date });
+  await writeTable(book, 'tblIncome', stableByDate(allOf('income')).map(e => ({ 'Date': D(e), 'Source': e.source, 'Received Into': e.account, 'Description': e.desc, 'Amount': e.amount })));
+  await writeTable(book, 'tblExpenses', stableByDate(allOf('expenses')).map(e => ({ 'Date': D(e), 'Category': e.category, 'Description': e.desc, 'Paid From': e.account, 'Payment Method': e.method, 'Amount': e.amount })));
+  await writeTable(book, 'tblTransfers', stableByDate(allOf('transfers')).map(e => ({ 'Date': D(e), 'From Account': e.from, 'To Account': e.to, 'Description': e.desc, 'Amount': e.amount, 'From Type': acctType(e.from), 'To Type': acctType(e.to) })));
+  await writeTable(book, 'tblCategories', S.setup.categories.map(c => ({ 'Category': c.name, 'Monthly Budget': +c.budget || 0 })));
+  await writeTable(book, 'tblAccounts', S.setup.accounts.map(a => ({ 'Account': a.name, 'Type': a.type, 'Purpose': a.purpose })));
+  if (book.tables.tblSources) await writeTable(book, 'tblSources', S.setup.sources.map(s => ({ 'Income Source': s })));
+  if (book.tables.tblPayMethods) await writeTable(book, 'tblPayMethods', S.setup.methods.map(s => ({ 'Payment Method': s })));
+  const wt = nameTarget(book, 'WarnThreshold'); if (wt) await setCellValue(book, wt.sheet, wt.ref, +S.setup.warn || 0.8);
+  const r = cycleRange();
+  const cRef = await findValidationCell(book, 'Dashboard', 'SalaryDates'); if (cRef && !r.nosalary) await setCellValue(book, 'Dashboard', cRef, { date: r.start });
+  // Make Excel recalculate everything when the file opens; drop the stale calc chain.
+  let calc = book.wb.getElementsByTagNameNS(NS_MAIN, 'calcPr')[0];
+  if (!calc) { calc = el(book.wb, 'calcPr'); const dn = book.wb.getElementsByTagNameNS(NS_MAIN, 'definedNames')[0] || book.wb.getElementsByTagNameNS(NS_MAIN, 'sheets')[0]; dn.parentNode.insertBefore(calc, dn.nextSibling); }
+  calc.setAttribute('fullCalcOnLoad', '1');
+  if (zip.file('xl/calcChain.xml')) {
+    zip.remove('xl/calcChain.xml');
+    for (const rel of [...book.rels.getElementsByTagName('Relationship')]) if (/\/calcChain$/.test(rel.getAttribute('Type'))) rel.parentNode.removeChild(rel);
+    zip.file('xl/_rels/workbook.xml.rels', serialize(book.rels));
+    const ct = await book.xml('[Content_Types].xml');
+    for (const o of [...ct.getElementsByTagName('Override')]) if (o.getAttribute('PartName') === '/xl/calcChain.xml') o.parentNode.removeChild(o);
+    zip.file('[Content_Types].xml', serialize(ct));
+  }
+  for (const [p, d] of Object.entries(book.docs)) zip.file(p, serialize(d));
+  for (const t of Object.values(book.tables)) if (t.dirty) zip.file(t.path, serialize(t.doc));
+  zip.file('xl/workbook.xml', serialize(book.wb));
+  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+window.__buildWorkbook = buildWorkbook; // used by tests
+
+/* ---------- import / export actions ---------- */
+async function handleFile(file) {
+  if (!file) return;
+  let parsed;
+  try { parsed = await parseWorkbook(await file.arrayBuffer()); }
+  catch (e) { openSheet('<div class="phead"><h3>Couldn’t load that file</h3><button class="x" data-close>×</button></div><p>' + esc(e.message) + '</p><button class="btn sec" data-close>OK</button>'); return; }
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const months = {};
+  for (const k of KINDS) for (const e of parsed[k]) (months[monthOf(e.date)] ||= { income: [], expenses: [], transfers: [] })[k].push(e);
+  S.setup = parsed.setup; S.months = months; S.file = { name: file.name, b64: bytesToB64(buf) };
+  S.meta = { fileName: file.name, importedAt: new Date().toISOString(), exportedAt: null, pending: 0 };
+  UI.cycle = parsed.cycle;
+  await Store.putEverything();
+  closeSheet(); UI.tab = 'home'; render();
+  const n = KINDS.reduce((s, k) => s + parsed[k].length, 0);
+  toast('Loaded ' + n + ' entries from ' + file.name + (parsed.skipped ? ' (' + parsed.skipped + ' incomplete rows skipped)' : ''), 4000);
+}
+function askImport() {
+  const pending = S.meta.pending || 0;
+  if (S.setup && pending > 0) {
+    openSheet(`<div class="phead"><h3>Replace app data?</h3><button class="x" data-close>×</button></div>
+      <p>You have <b>${pending} change${pending > 1 ? 's' : ''}</b> in the app that aren’t in Excel yet. Loading a file replaces everything here with what’s in that file.</p>
+      <button class="btn" data-act="export">Save to Excel first</button>
+      <button class="btn danger" data-act="pick">Load anyway</button>`);
+  } else pickFile();
+}
+function pickFile() { const f = $('#fileIn'); f.value = ''; f.click(); }
+let exportBlob = null;
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+function markExported() { S.meta.exportedAt = new Date().toISOString(); S.meta.pending = 0; Store.put('setup'); render(); }
+async function doExport() {
+  if (!S.file) { toast('Load your Excel file once first.'); return; }
+  try { exportBlob = await buildWorkbook(); } catch (e) { toast('Couldn’t build the Excel file: ' + e.message, 5000); return; }
+  const name = S.meta.fileName || 'Finance_Tracker.xlsx';
+  let canShare = false;
+  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([exportBlob], name, { type: XLSX_MIME })] })); } catch (e) {}
+  openSheet(`<div class="phead"><h3>Your Excel file is ready</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">It has everything in the app. Put it in OneDrive in place of the old copy.</p>
+    ${canShare ? `<button class="btn" data-act="shareFile">Send to OneDrive</button>
+    <ol class="steps"><li>In the share menu pick <b>OneDrive</b> (iPhone: <i>Save to Files</i> → <i>OneDrive</i>).</li><li>Go to the folder your tracker is in and save. If it asks, choose <b>Replace</b>.</li></ol>` : ''}
+    <button class="btn ${canShare ? 'sec' : ''}" data-act="downloadFile">Download to this device</button>
+    ${canShare ? '' : `<ol class="steps"><li>The file goes to your Downloads.</li><li>Open the OneDrive app → the tracker’s folder → <b>+</b> → <i>Upload</i> → pick <i>${esc(name)}</i> → <b>Replace</b>.</li></ol>`}`);
+}
+async function shareFile() {
+  const name = S.meta.fileName || 'Finance_Tracker.xlsx';
+  try { await navigator.share({ files: [new File([exportBlob], name, { type: XLSX_MIME })] }); markExported(); closeSheet(); toast('Sent. Your Excel is up to date.'); }
+  catch (e) { if (!e || e.name !== 'AbortError') toast('Couldn’t open the share menu. Try “Download to this device”.', 4000); }
+}
+function downloadFile() {
+  const name = S.meta.fileName || 'Finance_Tracker.xlsx';
+  const url = URL.createObjectURL(exportBlob);
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  markExported(); closeSheet(); toast('Downloaded ' + name + '. Now upload it to OneDrive.', 4500);
+}
+
+/* ---------- sheet (bottom panel) ---------- */
+let sheetCtx = null;
+function openSheet(html, ctx = null) { $('#panel').innerHTML = '<div class="grab"></div>' + html; sheetCtx = ctx; $('#overlay').classList.add('open'); }
+function closeSheet() { $('#overlay').classList.remove('open'); sheetCtx = null; }
+
+/* ---------- views ---------- */
+const ICON = {
+  ok: '<svg viewBox="0 0 16 16" fill="none" stroke="var(--good)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>',
+  near: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--warn)"/><path d="M8 4.2v4.6M8 11.2v.4" stroke="#1c1300" stroke-width="2" stroke-linecap="round"/></svg>',
+  over: '<svg viewBox="0 0 16 16"><path d="M8 1.5l7 12.5H1z" fill="var(--crit)"/><path d="M8 6v3.6M8 11.6v.3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>'
+};
+const STATUS = { ok: 'On track', near: 'Near limit', over: 'Over budget' };
+const statusColor = { ok: 'var(--good)', near: 'var(--warn)', over: 'var(--crit)' };
+
+function render() {
+  const v = $('#view');
+  if (!UI.ready) return;
+  updateSyncPill();
+  if (!S.setup) { $('#tabs').hidden = true; $('#fab').hidden = true; v.innerHTML = viewWelcome(); return; }
+  $('#tabs').hidden = false; $('#fab').hidden = false;
+  document.querySelectorAll('nav.tabs button').forEach(b => {
+    b.classList.toggle('on', b.dataset.tab === UI.tab);
+    const old = b.querySelector('.dot'); if (old) old.remove();
+    if (b.dataset.tab === 'excel' && S.meta.pending > 0) b.insertAdjacentHTML('beforeend', '<span class="dot">' + Math.min(S.meta.pending, 99) + '</span>');
+  });
+  v.innerHTML = UI.tab === 'activity' ? viewActivity() : UI.tab === 'accounts' ? viewAccounts() : UI.tab === 'excel' ? viewExcel() : viewHome();
+}
+
+function viewWelcome() {
+  return `<section class="card welcome">
+    <h2>Bring in your Finance Tracker</h2>
+    <p>Load the Excel file from OneDrive once. The app reads your categories, budgets, accounts and every entry, and from then on you can log spending here.</p>
+    <button class="btn" data-act="pick">Load Excel file</button>
+    <ol class="steps"><li>Tap <b>Load Excel file</b>.</li><li><b>iPhone:</b> tap <i>Browse</i> → <i>OneDrive</i>. <b>Android:</b> open the menu (☰) → <i>OneDrive</i>.</li><li>Pick <i>Finance_Tracker_v1.xlsx</i>.</li></ol>
+  </section>`;
+}
+
+function cycleSelect() {
+  const sd = salaryDates(), r = cycleRange();
+  if (!sd.length) return `<div class="cycle"><label>Period</label><span class="pill" style="font-weight:600;font-size:14px">${fmtShort(r.start)} → now</span></div>`;
+  const opts = sd.map((d, i) => { const nx = sd[i - 1]; return `<option value="${d}" ${d === r.start ? 'selected' : ''}>${fmtShort(d)} → ${nx ? fmtShort(addDays(nx, -1)) : 'now'}</option>`; }).join('');
+  return `<div class="cycle"><label for="cyc">Pay cycle</label><select id="cyc" class="pill" data-change="cycle">${opts}</select></div>`;
+}
+
+function viewHome() {
+  const r = cycleRange(), c = compute(r);
+  const used = c.cats.filter(x => x.spent > 0), idle = c.cats.filter(x => x.spent === 0 && x.budget > 0);
+  const shown = UI.allBudgets ? [...used, ...idle] : used;
+  const rows = shown.map(x => `
+    <button class="brow" data-act="cat" data-name="${esc(x.name)}">
+      <div class="l1"><b>${esc(x.name)}</b><span class="num">${naira(x.spent)} <span style="color:var(--ink-2)">of ${naira(x.budget)}</span></span></div>
+      <div class="track" title="${esc(x.name)}: ${pctTxt(x.pct)} of budget used"><div class="fill" style="width:${Math.min(100, x.pct * 100)}%;background:${statusColor[x.status]}"></div></div>
+      <div class="l2"><span class="st ${x.status}">${ICON[x.status]} ${STATUS[x.status]}</span><span class="num">${x.remaining >= 0 ? naira(x.remaining) + ' left' : naira(-x.remaining) + ' over'}</span></div>
+    </button>`).join('');
+  const spentCats = c.cats.filter(x => x.spent > 0).sort((a, b) => b.spent - a.spent);
+  let bars = spentCats.slice(0, 6).map(x => ({ name: x.name, v: x.spent }));
+  const rest = spentCats.slice(6).reduce((s, x) => s + x.spent, 0) + Math.max(0, c.uncategorised);
+  if (rest > 0) bars.push({ name: 'Other', v: rest });
+  const max = Math.max(1, ...bars.map(b => b.v));
+  const barsHtml = bars.length ? bars.map(b => `<div class="hbar" title="${esc(b.name)}: ${naira(b.v)} (${pctTxt(b.v / (c.spent || 1))} of spending)"><span class="nm">${esc(b.name)}</span><span class="vl num">${naira(b.v)}</span><div class="tr"><span style="width:${b.v / max * 100}%"></span></div></div>`).join('') : '<div class="empty">No spending yet this cycle.</div>';
+  const p = S.meta.pending || 0, lastBackup = S.meta.exportedAt || S.meta.importedAt;
+  const stale = p >= 10 || (p > 0 && lastBackup && Date.now() - new Date(lastBackup).getTime() > 7 * 86400000);
+  const remind = stale && !UI.remindHidden ? `<section class="card" style="border-color:var(--warn)">
+    <div class="card-head" style="margin-bottom:6px"><h2>Back up to Excel</h2><span class="badge">${p} not in Excel</span></div>
+    <p class="note" style="margin:0 0 12px">These entries are only on this phone. Save them to your Excel file in OneDrive so they’re safe.</p>
+    <button class="btn" data-act="export">Save to Excel</button><button class="btn sec" data-act="remindLater">Later</button></section>` : '';
+  return `${cycleSelect()}${remind}
+  <section class="card hero">
+    <div class="lbl">Left to spend</div>
+    <div class="big num">${naira(c.left)}</div>
+    <div class="sub">Income − spent − saved${r.nosalary ? ' · no salary logged yet, showing this month' : ''}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Income</div><div class="v num">${naira(c.income)}</div></div>
+      <div class="kpi"><div class="k">Spent</div><div class="v num">${naira(c.spent)}</div></div>
+      <div class="kpi"><div class="k">Saved</div><div class="v num">${naira(c.saved)}</div></div>
+      <div class="kpi"><div class="k">Savings rate</div><div class="v num">${pctTxt(c.rate)}</div></div>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Budget vs actual</h2><small class="num">${naira(c.spent - Math.max(0, c.uncategorised))} of ${naira(c.budgetTotal)}</small></div>
+    ${rows || '<div class="empty" style="padding:8px 0 14px">Nothing spent yet this cycle.</div>'}
+    ${idle.length ? `<button class="more" data-act="allBudgets">${UI.allBudgets ? 'Hide untouched budgets' : 'Show ' + idle.length + ' untouched budget' + (idle.length > 1 ? 's' : '') + ' · ' + naira(idle.reduce((s, x) => s + x.budget, 0))}</button>` : ''}
+    ${Math.abs(c.uncategorised) > 0.005 ? `<p class="note">${naira(c.uncategorised)} spent in categories that aren’t on your list.</p>` : ''}
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Where it went</h2><small>this cycle</small></div>
+    ${barsHtml}
+  </section>`;
+}
+
+function itemHtml(kind, e) {
+  if (kind === 'expenses') return `<button class="item" data-act="edit" data-kind="expenses" data-id="${e.id}"><div class="ico">${esc((e.category || '?')[0])}</div><div class="mid"><div class="t1">${esc(e.desc || e.category)}</div><div class="t2">${esc([e.category, e.account, e.method].filter(Boolean).join(' · '))}</div></div><div class="amt num">−${naira(e.amount)}</div></button>`;
+  if (kind === 'income') return `<button class="item" data-act="edit" data-kind="income" data-id="${e.id}"><div class="ico inc">+</div><div class="mid"><div class="t1">${esc(e.desc || e.source)}</div><div class="t2">${esc([e.source, e.account].filter(Boolean).join(' · '))}</div></div><div class="amt inc num">+${naira(e.amount)}</div></button>`;
+  const sv = acctType(e.to) === 'Savings' ? ' · saved' : acctType(e.from) === 'Savings' ? ' · from savings' : '';
+  return `<button class="item" data-act="edit" data-kind="transfers" data-id="${e.id}"><div class="ico">⇄</div><div class="mid"><div class="t1">${esc(e.desc || 'Transfer')}</div><div class="t2">${esc(e.from + ' → ' + e.to + sv)}</div></div><div class="amt tr num">${naira(e.amount)}</div></button>`;
+}
+function groupedList(items) {
+  if (!items.length) return '<div class="list"><div class="empty">Nothing here yet.</div></div>';
+  const byDay = {}; items.forEach(x => (byDay[x.e.date] ||= []).push(x));
+  return Object.keys(byDay).sort().reverse().map(d => `<div class="day">${fmtDay(d)}</div><div class="list">${byDay[d].slice().reverse().map(x => itemHtml(x.kind, x.e)).join('')}</div>`).join('');
+}
+function viewActivity() {
+  const r = cycleRange();
+  const kinds = UI.filter === 'all' ? KINDS : [UI.filter];
+  const items = []; kinds.forEach(k => allOf(k).forEach(e => { if (UI.scope === 'all' || inRange(e.date, r)) items.push({ kind: k, e }); }));
+  const f = (v, l) => `<button class="chip ${UI.filter === v ? 'on' : ''}" data-act="filter" data-v="${v}">${l}</button>`;
+  return `${UI.scope === 'cycle' ? cycleSelect() : ''}
+  <div class="filters" style="margin-top:12px">${f('all', 'All')}${f('expenses', 'Spending')}${f('income', 'Income')}${f('transfers', 'Transfers')}
+  <button class="chip" data-act="scope">${UI.scope === 'cycle' ? 'Show all time' : 'This cycle only'}</button></div>
+  ${groupedList(items)}`;
+}
+function viewAccounts() {
+  const r = cycleRange(), c = compute(r);
+  const types = [...new Set(c.accts.map(a => a.type || 'Other'))];
+  const total = c.accts.reduce((s, a) => s + a.bal, 0);
+  return `${cycleSelect()}
+  <section class="card"><div class="card-head"><h2>All accounts</h2><small>since tracking started</small></div>
+    <div class="big num" style="font-size:30px;font-weight:800;letter-spacing:-.02em">${naira(total)}</div>
+    <p class="note" style="margin-top:4px">Balances count only money tracked in this file, not what was already in each account before.</p></section>
+  ${types.map(t => { const list = c.accts.filter(a => (a.type || 'Other') === t); return `<div class="day">${esc(t)} · ${naira(list.reduce((s, a) => s + a.bal, 0))}</div><div class="list">${list.map(a => `
+    <button class="item" data-act="acct" data-name="${esc(a.name)}"><div class="mid"><div class="t1">${esc(a.name)}</div><div class="t2">${esc(a.purpose || '')}</div></div>
+    <div style="text-align:right"><div class="amt num">${naira(a.bal)}</div><div class="t2 num" style="font-size:12px;color:var(--ink-2)">${a.net >= 0 ? '+' : ''}${naira(a.net)} this cycle</div></div></button>`).join('')}</div>`; }).join('')}`;
+}
+function viewExcel() {
+  const p = S.meta.pending || 0;
+  const tooMany = S.setup.categories.length > DASH_CAT_ROWS || S.setup.accounts.length > DASH_ACCT_ROWS;
+  return `<section class="card">
+    <div class="card-head"><h2>Linked workbook</h2>${p ? `<span class="badge">${p} not in Excel</span>` : '<span class="badge ok">Up to date</span>'}</div>
+    <div class="kv"><span>File</span><span>${esc(S.meta.fileName || '—')}</span></div>
+    <div class="kv"><span>Loaded from Excel</span><span>${fmtStamp(S.meta.importedAt)}</span></div>
+    <div class="kv"><span>Last saved to Excel</span><span>${fmtStamp(S.meta.exportedAt)}</span></div>
+    <div style="margin-top:14px"><button class="btn" data-act="export" ${S.file ? '' : 'disabled'}>Save to Excel</button><button class="btn sec" data-act="import">Load from Excel</button></div>
+    <details style="margin-top:12px"><summary>How the app and Excel stay in step</summary>
+      <ol class="steps"><li><b>Logged things on your phone?</b> Tap <i>Save to Excel</i>, then replace the copy in OneDrive. Your dashboard, budgets and charts update when Excel opens it.</li>
+      <li><b>Edited the Excel on your laptop?</b> Tap <i>Load from Excel</i> and pick it from OneDrive. The app picks up your changes.</li>
+      <li>Save before you load, or changes made in the app since your last save are replaced.</li></ol>
+    </details>
+  </section>
+  <section class="card"><h2 style="margin-bottom:6px">Budgets &amp; lists</h2>
+    <details><summary>Monthly budgets</summary>
+      ${S.setup.categories.map((cat, i) => `<div class="erow"><div class="n">${esc(cat.name)}</div><input class="in sm num" inputmode="decimal" value="${cat.budget}" data-change="budget" data-i="${i}" aria-label="Budget for ${esc(cat.name)}"></div>`).join('')}
+      <div class="addrow"><input class="in" id="newCat" placeholder="New category"><button data-act="addCat">Add</button></div>
+      <p class="note">To rename or remove a category, change it in Excel, then load the file again.</p>
+    </details>
+    <details><summary>Accounts</summary>
+      ${S.setup.accounts.map(a => `<div class="erow"><div class="n">${esc(a.name)}<small>${esc(a.type)}${a.purpose ? ' · ' + esc(a.purpose) : ''}</small></div></div>`).join('')}
+      <div class="addrow"><input class="in" id="newAcct" placeholder="New account"><select class="in" id="newAcctType" style="width:120px;flex:none">${[...new Set(['Bank', 'Wallet', 'Savings', ...S.setup.accounts.map(a => a.type).filter(Boolean)])].map(t => `<option>${esc(t)}</option>`).join('')}</select><button data-act="addAcct">Add</button></div>
+      <p class="note">Moving money into a <b>Savings</b>-type account counts as saved.</p>
+    </details>
+    <details><summary>Income sources &amp; payment methods</summary>
+      <div class="fld" style="margin-top:10px"><label>Income sources</label><div class="chips">${S.setup.sources.map(s => `<span class="chip">${esc(s)}</span>`).join('')}</div>
+      <div class="addrow"><input class="in" id="newSrc" placeholder="New source"><button data-act="addSrc">Add</button></div></div>
+      <div class="fld"><label>Payment methods</label><div class="chips">${S.setup.methods.map(s => `<span class="chip">${esc(s)}</span>`).join('')}</div>
+      <div class="addrow"><input class="in" id="newMeth" placeholder="New method"><button data-act="addMeth">Add</button></div></div>
+    </details>
+    <details><summary>Near-limit warning</summary>
+      <div class="erow"><div class="n">Warn when a budget is this full</div><select class="in" style="width:100px" data-change="warn">${[0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95].map(x => `<option value="${x}" ${Math.abs(x - S.setup.warn) < 1e-9 ? 'selected' : ''}>${Math.round(x * 100)}%</option>`).join('')}</select></div>
+    </details>
+    ${tooMany ? `<p class="note">Your Excel dashboard has rows for ${DASH_CAT_ROWS} categories and ${DASH_ACCT_ROWS} accounts. Extra ones are tracked here but won’t show on the Excel dashboard.</p>` : ''}
+  </section>
+  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>`;
+}
+
+/* ---------- drill-downs ---------- */
+function openCategory(name) {
+  const r = cycleRange(), c = compute(r), cat = c.cats.find(x => x.name === name);
+  const items = c.E.filter(e => e.category === name).map(e => ({ kind: 'expenses', e }));
+  openSheet(`<div class="phead"><h3>${esc(name)}</h3><button class="x" data-close>×</button></div>
+    <div class="kv"><span>Spent this cycle</span><span class="num"><b>${naira(cat.spent)}</b> · ${items.length} payment${items.length === 1 ? '' : 's'}</span></div>
+    <div class="kv"><span>Budget</span><span class="num">${naira(cat.budget)}</span></div>
+    <div class="kv"><span>Status</span><span class="st ${cat.status}">${ICON[cat.status]} ${STATUS[cat.status]}</span></div>
+    ${groupedList(items)}`);
+}
+function openAccount(name) {
+  const r = cycleRange(), c = compute(r), a = c.accts.find(x => x.name === name);
+  const items = [];
+  c.I.filter(e => e.account === name).forEach(e => items.push({ kind: 'income', e }));
+  c.E.filter(e => e.account === name).forEach(e => items.push({ kind: 'expenses', e }));
+  c.T.filter(e => e.from === name || e.to === name).forEach(e => items.push({ kind: 'transfers', e }));
+  openSheet(`<div class="phead"><h3>${esc(name)}</h3><button class="x" data-close>×</button></div>
+    <div class="kv"><span>Balance (since tracking start)</span><span class="num"><b>${naira(a.bal)}</b></span></div>
+    <div class="kv"><span>Money in this cycle</span><span class="num">${naira(a.mIn)}</span></div>
+    <div class="kv"><span>Money out this cycle</span><span class="num">${naira(a.mOut)}</span></div>
+    ${groupedList(items)}`);
+}
+
+/* ---------- add / edit form ---------- */
+function openForm(kind = 'expenses', entry = null) {
+  const last = lsGet('mt-last') || {};
+  const st = sheetCtx = { form: true, kind, editing: entry ? entry.id : null, origKind: kind, confirmDel: false,
+    v: entry ? { ...entry } : { date: todayISO(), amount: '', desc: '', ...(last[kind] || {}) } };
+  if (!entry) st.v.amount = '';
+  drawForm();
+  $('#overlay').classList.add('open');
+  setTimeout(() => { const a = $('#f-amount'); if (a && !entry) a.focus(); }, 250);
+}
+function chipGroup(field, options, value) {
+  return `<div class="chips" data-field="${field}">${options.map(o => `<button type="button" class="chip ${o === value ? 'on' : ''}" data-chip="${field}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+}
+function acctSelect(field, value, placeholder) {
+  return `<select class="in" data-field="${field}"><option value="">${placeholder}</option>${S.setup.accounts.map(a => `<option ${a.name === value ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>`;
+}
+function drawForm() {
+  const st = sheetCtx, v = st.v, k = st.kind;
+  const seg = (key, label) => `<button type="button" class="${k === key ? 'on' : ''}" data-seg="${key}" ${st.editing ? 'disabled' : ''}>${label}</button>`;
+  let body = '';
+  if (k === 'expenses') body = `
+    <div class="fld"><label>Category</label>${chipGroup('category', S.setup.categories.map(c => c.name), v.category)}</div>
+    <div class="fld"><label>Paid from</label>${acctSelect('account', v.account, 'Choose account')}</div>
+    <div class="fld"><label>Payment method</label>${chipGroup('method', S.setup.methods, v.method)}</div>`;
+  else if (k === 'income') body = `
+    <div class="fld"><label>Source</label>${chipGroup('source', S.setup.sources, v.source)}</div>
+    <div class="fld"><label>Received into</label>${acctSelect('account', v.account, 'Choose account')}</div>`;
+  else body = `
+    <div class="fld"><label>From</label>${acctSelect('from', v.from, 'From account')}</div>
+    <div class="fld"><label>To</label>${acctSelect('to', v.to, 'To account')}${acctType(v.to) === 'Savings' && acctType(v.from) !== 'Savings' ? '<div class="hint">Counts as saved</div>' : ''}</div>`;
+  $('#panel').innerHTML = `<div class="grab"></div>
+    <div class="phead"><h3>${st.editing ? 'Edit entry' : 'New entry'}</h3><button class="x" data-close>×</button></div>
+    <div class="seg">${seg('expenses', 'Spent')}${seg('income', 'Income')}${seg('transfers', 'Transfer')}</div>
+    <div class="amtwrap"><span>₦</span><input id="f-amount" inputmode="decimal" autocomplete="off" placeholder="0" value="${esc(v.amount === '' ? '' : NF.format(v.amount))}" data-field="amount" aria-label="Amount"></div>
+    <div class="err" id="f-err"></div>
+    ${body}
+    <div class="fld"><label for="f-date">Date</label><input type="date" class="in" id="f-date" value="${esc(v.date)}" data-field="date"></div>
+    <div class="fld"><label for="f-desc">Description</label><input class="in" id="f-desc" value="${esc(v.desc || '')}" placeholder="${k === 'expenses' ? 'e.g. Chicken Republic' : k === 'income' ? 'e.g. November salary' : 'e.g. Monthly savings'}" data-field="desc"></div>
+    <button class="btn" data-act="saveEntry">${st.editing ? 'Save changes' : 'Add'}</button>
+    ${st.editing ? `<button class="btn danger" data-act="delEntry">${st.confirmDel ? 'Tap again to delete' : 'Delete entry'}</button>` : ''}`;
+}
+function readAmount(s) { const n = parseFloat(String(s).replace(/[₦,\s]/g, '')); return isNaN(n) ? NaN : n; }
+function saveForm() {
+  const st = sheetCtx, v = st.v, k = st.kind, err = m => { $('#f-err').textContent = m; };
+  const amount = readAmount($('#f-amount').value); v.date = $('#f-date').value; v.desc = $('#f-desc').value.trim();
+  if (!(amount > 0)) return err('Enter an amount above zero.');
+  if (!v.date) return err('Pick a date.');
+  let e;
+  if (k === 'expenses') { if (!v.category) return err('Pick a category.'); if (!v.account) return err('Pick the account it was paid from.'); e = { date: v.date, category: v.category, desc: v.desc, account: v.account, method: v.method || '', amount }; }
+  else if (k === 'income') { if (!v.source) return err('Pick a source.'); if (!v.account) return err('Pick the account it landed in.'); e = { date: v.date, source: v.source, account: v.account, desc: v.desc, amount }; }
+  else { if (!v.from || !v.to) return err('Pick both accounts.'); if (v.from === v.to) return err('From and To must be different accounts.'); e = { date: v.date, from: v.from, to: v.to, desc: v.desc, amount }; }
+  const last = lsGet('mt-last') || {};
+  last[k] = k === 'expenses' ? { account: e.account, method: e.method } : k === 'income' ? { account: e.account } : { from: e.from, to: e.to };
+  lsSet('mt-last', last);
+  if (st.editing) { e.id = st.editing; updateEntry(k, e); toast('Updated'); }
+  else { e.id = newId(); addEntry(k, e); toast(k === 'expenses' ? 'Spending added' : k === 'income' ? 'Income added' : 'Transfer added'); }
+  closeSheet(); render();
+}
+function findEntry(kind, id) { return allOf(kind).find(e => e.id === id); }
+
+/* ---------- events ---------- */
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip]');
+  if (ev.target === $('#overlay')) { closeSheet(); return; }
+  if (!t) return;
+  if (t.dataset.tab) { UI.tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  if (t.hasAttribute('data-close')) { closeSheet(); return; }
+  if (t.dataset.seg && sheetCtx && sheetCtx.form) { syncFormInputs(); sheetCtx.kind = t.dataset.seg; const last = (lsGet('mt-last') || {})[t.dataset.seg] || {}; sheetCtx.v = { date: sheetCtx.v.date, amount: sheetCtx.v.amount, desc: sheetCtx.v.desc, ...last }; drawForm(); return; }
+  if (t.dataset.chip && sheetCtx && sheetCtx.form) { syncFormInputs(); const f = t.dataset.chip; sheetCtx.v[f] = sheetCtx.v[f] === t.dataset.v ? '' : t.dataset.v; drawForm(); return; }
+  const a = t.dataset.act;
+  if (a === 'pick') { closeSheet(); pickFile(); }
+  else if (a === 'import') askImport();
+  else if (a === 'export') doExport();
+  else if (a === 'shareFile') shareFile();
+  else if (a === 'downloadFile') downloadFile();
+  else if (a === 'remindLater') { UI.remindHidden = true; render(); }
+  else if (a === 'cat') openCategory(t.dataset.name);
+  else if (a === 'acct') openAccount(t.dataset.name);
+  else if (a === 'filter') { UI.filter = t.dataset.v; render(); }
+  else if (a === 'allBudgets') { UI.allBudgets = !UI.allBudgets; render(); }
+  else if (a === 'scope') { UI.scope = UI.scope === 'cycle' ? 'all' : 'cycle'; render(); }
+  else if (a === 'edit') { const e = findEntry(t.dataset.kind, t.dataset.id); if (e) openForm(t.dataset.kind, e); }
+  else if (a === 'saveEntry') saveForm();
+  else if (a === 'delEntry') { if (!sheetCtx.confirmDel) { syncFormInputs(); sheetCtx.confirmDel = true; drawForm(); return; } removeEntry(sheetCtx.kind, sheetCtx.editing); bumpPending(); closeSheet(); render(); toast('Deleted'); }
+  else if (a === 'addCat') { const n = $('#newCat').value.trim(); if (!n) return; if (S.setup.categories.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That category already exists.'); S.setup.categories.push({ name: n, budget: 0 }); bumpPending(); render(); openDetails(0); toast('Category added — set its budget'); }
+  else if (a === 'addAcct') { const n = $('#newAcct').value.trim(), ty = $('#newAcctType').value; if (!n) return; if (S.setup.accounts.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That account already exists.'); S.setup.accounts.push({ name: n, type: ty, purpose: '' }); bumpPending(); render(); openDetails(1); toast('Account added'); }
+  else if (a === 'addSrc' || a === 'addMeth') { const id = a === 'addSrc' ? '#newSrc' : '#newMeth', key = a === 'addSrc' ? 'sources' : 'methods'; const n = $(id).value.trim(); if (!n || S.setup[key].includes(n)) return; S.setup[key].push(n); bumpPending(); render(); openDetails(2); }
+});
+function openDetails(i) { const d = document.querySelectorAll('#view section:nth-of-type(2) details')[i]; if (d) d.open = true; }
+function syncFormInputs() {
+  if (!sheetCtx || !sheetCtx.form) return;
+  const v = sheetCtx.v, a = $('#f-amount'), d = $('#f-date'), s = $('#f-desc');
+  if (a) { const n = readAmount(a.value); v.amount = isNaN(n) ? '' : n; }
+  if (d) v.date = d.value; if (s) v.desc = s.value;
+  document.querySelectorAll('#panel select[data-field]').forEach(x => { v[x.dataset.field] = x.value; });
+}
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.id === 'fileIn') { handleFile(t.files[0]); return; }
+  if (t.matches('#panel select[data-field]')) { syncFormInputs(); drawForm(); return; }
+  const c = t.dataset.change;
+  if (c === 'cycle') { UI.cycle = t.value; render(); }
+  else if (c === 'budget') { const n = readAmount(t.value); const cat = S.setup.categories[+t.dataset.i]; if (!isNaN(n) && n >= 0 && n !== cat.budget) { cat.budget = n; bumpPending(); toast('Budget for ' + cat.name + ' set to ' + naira(n)); } else t.value = cat.budget; }
+  else if (c === 'warn') { S.setup.warn = +t.value; bumpPending(); }
+});
+document.addEventListener('input', ev => {
+  if (ev.target.id === 'f-amount') { const el = ev.target, raw = el.value.replace(/[^\d.]/g, ''); const [i, d] = raw.split('.'); const f = (i ? NF.format(+i) : '') + (d !== undefined ? '.' + d.slice(0, 2) : ''); if (f !== el.value) el.value = f; }
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.addrow')) ev.target.closest('.addrow').querySelector('button').click(); });
+$('#fab').addEventListener('click', () => openForm('expenses'));
+
+Store.init();
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</body>
+</html>
