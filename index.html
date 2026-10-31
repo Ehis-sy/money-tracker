@@ -253,6 +253,7 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
+const APP_VERSION = '5 · 31 Oct 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
 function allOf(kind) { const out = []; for (const k of Object.keys(S.months).sort()) for (const e of (S.months[k][kind] || [])) out.push(e); return out; }
@@ -1127,7 +1128,7 @@ function viewExcel() {
     ${getPin() && UI.bioAvail ? (lsGet(BIO_KEY) ? '<div class="kv" style="margin-bottom:10px"><span>Fingerprint unlock</span><span class="st ok">' + ICON.ok + ' On</span></div><button class="btn sec" data-act="disableBio">Turn off fingerprint</button>' : '<button class="btn" data-act="enableBio">Unlock with fingerprint too</button>') : ''}
     <button class="btn sec" data-act="setPin">${getPin() ? 'Change PIN' : 'Set a PIN'}</button>${getPin() ? '<button class="btn danger" data-act="removePin">Turn off app lock</button>' : ''}
     ${!getPin() && UI.bioAvail ? '<p class="note">After you set a PIN, you can unlock with your fingerprint too. The PIN stays as a backup.</p>' : ''}</section>
-  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>`;
+  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.<br><span style="color:var(--muted)">App version ${APP_VERSION}</span></p>`;
 }
 
 /* ---------- drill-downs ---------- */
