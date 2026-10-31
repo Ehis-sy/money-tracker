@@ -154,6 +154,44 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 .skel{height:120px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;animation:sh 1.2s infinite;margin:12px 0}
 @keyframes sh{to{background-position:-200% 0}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.toprow .cycle{min-width:0;flex:1}
+.pbtn{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;color:var(--accent);margin-top:4px}
+.perday{display:block;width:100%;text-align:left;background:rgba(255,255,255,.12);border:none;color:inherit;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px;line-height:1.35}
+.perday b{font-size:16px}
+@media (prefers-color-scheme: dark){.perday{background:rgba(0,0,0,.14)}}
+.crow{padding:10px 0;border-top:1px solid var(--line)}
+.crow:first-of-type{border-top:none;padding-top:0}
+.crow .l1{display:flex;justify-content:space-between;gap:8px;font-size:14.5px}
+.crow .l2{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.up{color:var(--crit);font-weight:700} .down{color:var(--income);font-weight:700}
+.search{position:sticky;top:0;z-index:3;background:var(--bg);padding:6px 0 4px}
+.sumcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;margin-top:10px}
+.pl{gap:10px;padding:10px 12px}
+.pl input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+.pl .in.sm{width:100px;flex:none}
+.pl .t1{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:14px;line-height:1.3}
+@media (max-width:380px){.toprow .cycle label{display:none}}
+.pl.off .mid,.pl.off .in{opacity:.45}
+.rm{border:none;background:none;color:var(--muted);font-size:22px;width:26px;flex:none;padding:0}
+.linkbtn{background:none;border:none;color:var(--accent);font-weight:700;font-size:14px;padding:12px 0 0;display:block;margin:0 auto}
+.check{display:flex;align-items:center;gap:10px;font-size:14px;margin:14px 0}
+.check input{width:20px;height:20px;accent-color:var(--accent);margin:0}
+#lock{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#lock[hidden]{display:none}
+.lockbox{text-align:center;width:100%;max-width:320px;padding:20px}
+.lockbox h2{margin:12px 0 0;font-size:20px}
+.lk-ico{width:56px;height:56px;border-radius:18px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin:0 auto}
+.lk-ico svg{width:26px;height:26px}
+.dots{display:flex;gap:18px;justify-content:center;margin:20px 0 6px}
+.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink-2)}
+.dots i.f{background:var(--ink);border-color:var(--ink)}
+.lk-err{color:var(--crit);min-height:22px;font-weight:600;font-size:14px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.pad button{height:64px;border:1px solid var(--line);background:var(--surface);border-radius:20px;font-size:24px;font-weight:700}
+.pad button.txt{border:none;background:none;font-size:13.5px;color:var(--ink-2);font-weight:600}
+.shake{animation:shake .32s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
 </style>
 </head>
 <body>
@@ -173,6 +211,7 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 </div></nav>
 <div class="overlay" id="overlay"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
 <div id="toast" role="status"></div>
+<div id="lock" hidden><div class="lockbox" id="lockbox"></div></div>
 <input type="file" id="fileIn" class="sr" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
 
 <script>
@@ -204,8 +243,12 @@ function b64ToBytes(b64) { const s = atob(b64); const u = new Uint8Array(s.lengt
 
 /* ---------- state ---------- */
 const KINDS = ['income', 'expenses', 'transfers'];
-const S = { setup: null, months: {}, meta: {}, file: null };
-const UI = { tab: 'home', cycle: null, filter: 'all', scope: 'cycle', ready: false };
+const S = { setup: null, months: {}, meta: {}, file: null, prefs: {} }; // prefs: app-only settings (payday list, next payday) – kept when Excel is reloaded
+const UI = { tab: 'home', cycle: null, filter: 'all', scope: 'cycle', ready: false, q: '', locked: false };
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
+const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
+const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
 function allOf(kind) { const out = []; for (const k of Object.keys(S.months).sort()) for (const e of (S.months[k][kind] || [])) out.push(e); return out; }
@@ -250,17 +293,18 @@ const Store = {
   mode: 'local',
   init() {
     const cache = lsGet(CACHE_KEY);
-    if (cache && cache.setup) applyAll(cache);
+    if (cache && (cache.setup || cache.prefs)) applyAll(cache);
     // Ask the browser to keep this app's data even when space runs low.
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    if (getPin()) lockApp();
     UI.ready = true; render();
   },
   put() { saveCache(); return Promise.resolve(); },
   putEverything() { saveCache(); return Promise.resolve(); }
 };
-function applyAll(o) { S.setup = o.setup || null; S.months = o.months || {}; S.meta = o.meta || {}; S.file = o.file || null; }
+function applyAll(o) { S.setup = o.setup || null; S.months = o.months || {}; S.meta = o.meta || {}; S.file = o.file || null; S.prefs = o.prefs || {}; }
 function saveCache() {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ setup: S.setup, months: S.months, meta: S.meta, file: S.file })); }
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ setup: S.setup, months: S.months, meta: S.meta, file: S.file, prefs: S.prefs })); }
   catch (e) { toast('Couldn’t save on this phone (storage full or blocked). Save to Excel now.', 6000); }
   updateSyncPill();
 }
@@ -575,6 +619,7 @@ const statusColor = { ok: 'var(--good)', near: 'var(--warn)', over: 'var(--crit)
 function render() {
   const v = $('#view');
   if (!UI.ready) return;
+  if (UI.locked) { $('#tabs').hidden = true; $('#fab').hidden = true; v.innerHTML = ''; return; }
   updateSyncPill();
   if (!S.setup) { $('#tabs').hidden = true; $('#fab').hidden = true; v.innerHTML = viewWelcome(); return; }
   $('#tabs').hidden = false; $('#fab').hidden = false;
@@ -624,11 +669,19 @@ function viewHome() {
     <div class="card-head" style="margin-bottom:6px"><h2>Back up to Excel</h2><span class="badge">${p} not in Excel</span></div>
     <p class="note" style="margin:0 0 12px">These entries are only on this phone. Save them to your Excel file in OneDrive so they’re safe.</p>
     <button class="btn" data-act="export">Save to Excel</button><button class="btn sec" data-act="remindLater">Later</button></section>` : '';
-  return `${cycleSelect()}${remind}
+  const pi = paydayInfo(r);
+  let perDay = '';
+  if (pi) {
+    if (pi.days <= 0) perDay = `<button class="perday" data-act="nextPayday">Payday was due ${fmtDM(pi.next)}. When it lands, tap <b style="font-size:inherit">Log payday</b>, or change the date ✎</button>`;
+    else if (c.left < 0) perDay = `<button class="perday" data-act="nextPayday">Over by <b>${naira(-c.left)}</b> with ${pi.days} day${pi.days > 1 ? 's' : ''} to payday (${fmtDM(pi.next)}) ✎</button>`;
+    else perDay = `<button class="perday" data-act="nextPayday"><b class="num">${naira(Math.floor(c.left / pi.days))}</b> a day for ${pi.days} day${pi.days > 1 ? 's' : ''} · payday ${fmtDM(pi.next)} ✎</button>`;
+  }
+  return `<div class="toprow">${cycleSelect()}<button class="pbtn" data-act="payday">Log payday</button></div>${remind}
   <section class="card hero">
     <div class="lbl">Left to spend</div>
     <div class="big num">${naira(c.left)}</div>
     <div class="sub">Income − spent − saved${r.nosalary ? ' · no salary logged yet, showing this month' : ''}</div>
+    ${perDay}
     <div class="kpis">
       <div class="kpi"><div class="k">Income</div><div class="v num">${naira(c.income)}</div></div>
       <div class="kpi"><div class="k">Spent</div><div class="v num">${naira(c.spent)}</div></div>
@@ -645,8 +698,168 @@ function viewHome() {
   <section class="card">
     <div class="card-head"><h2>Where it went</h2><small>this cycle</small></div>
     ${barsHtml}
-  </section>`;
+  </section>
+  ${r.nosalary ? '' : compareCard(r)}`;
 }
+
+/* ---------- safe to spend per day ---------- */
+function paydayInfo(r) {
+  const sd = salaryDates();
+  if (r.nosalary || r.end || r.start !== sd[0]) return null; // only for the current cycle
+  const custom = S.prefs.nextPayday && S.prefs.nextPayday > r.start ? S.prefs.nextPayday : null;
+  const next = custom || addMonth(r.start);
+  return { next, days: daysBetween(todayISO(), next), custom: !!custom };
+}
+function openNextPayday() {
+  const r = cycleRange(), pi = paydayInfo(r); if (!pi) return;
+  openSheet(`<div class="phead"><h3>Next payday</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">Used to work out how much you can spend each day. ${pi.custom ? '' : 'Right now it assumes the same date next month.'}</p>
+    <div class="fld" style="margin-top:12px"><label for="np">Expected date</label><input type="date" class="in" id="np" value="${pi.next}" min="${addDays(r.start, 1)}"></div>
+    <button class="btn" data-act="saveNextPayday">Save</button>
+    ${pi.custom ? `<button class="btn sec" data-act="resetNextPayday">Use the same date next month (${fmtDM(addMonth(r.start))})</button>` : ''}`);
+}
+
+/* ---------- this cycle vs usual ---------- */
+function compareCard(r) {
+  const sd = salaryDates().slice().sort();
+  const prev = sd.filter(d => d < r.start).slice(-3);
+  if (!prev.length) return `<section class="card"><div class="card-head"><h2>Compared with usual</h2></div>
+    <p class="note" style="margin:0">After your next payday, this shows how each category compares with what you usually spend.</p></section>`;
+  const ranges = prev.map(s => ({ start: s, end: addDays(sd.find(d => d > s), -1) }));
+  const exp = allOf('expenses');
+  const rows = S.setup.categories.map(cat => {
+    const mine = exp.filter(e => e.category === cat.name);
+    const now = sum(mine.filter(e => inRange(e.date, r)));
+    const avg = ranges.reduce((s, g) => s + sum(mine.filter(e => inRange(e.date, g))), 0) / ranges.length;
+    return { name: cat.name, now, avg, diff: now - avg };
+  }).filter(x => x.now > 0 || x.avg > 0).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  const line = x => {
+    const same = Math.abs(x.diff) <= Math.max(500, x.avg * 0.05);
+    const d = same ? '<span>about the same</span>' : x.diff > 0 ? `<span class="up">▲ ${naira(x.diff)} more</span>` : `<span class="down">▼ ${naira(-x.diff)} less</span>`;
+    return `<div class="crow"><div class="l1"><b>${esc(x.name)}</b><span class="num">${naira(x.now)}</span></div><div class="l2"><span class="num">usually ${naira(Math.round(x.avg))}</span>${d}</div></div>`;
+  };
+  const shown = UI.allCompare ? rows : rows.slice(0, 6);
+  return `<section class="card"><div class="card-head"><h2>Compared with usual</h2><small>${ranges.length > 1 ? 'avg of your last ' + ranges.length + ' cycles' : 'vs your last cycle'}</small></div>
+    ${rows.length ? shown.map(line).join('') : '<div class="empty">No spending to compare yet.</div>'}
+    ${rows.length > 6 ? `<button class="more" data-act="allCompare">${UI.allCompare ? 'Show fewer' : 'Show all ' + rows.length}</button>` : ''}
+    ${r.end ? '' : '<p class="note">This cycle is still running, so its figures are what you’ve spent so far.</p>'}</section>`;
+}
+
+/* ---------- payday template ---------- */
+const retitle = (s, date) => String(s || '').replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g, MONTHS_FULL[isoParts(date)[1] - 1]);
+function toLine(kind, e) { const { id, date, ...rest } = e; return { kind, ...rest }; }
+function defaultTemplate() {
+  const d = salaryDates()[0]; if (!d) return [];
+  const lines = []; for (const k of KINDS) allOf(k).filter(e => e.date === d).forEach(e => lines.push(toLine(k, e)));
+  return lines;
+}
+function lineTitle(l) { return l.desc || (l.kind === 'income' ? l.source : l.kind === 'expenses' ? l.category : 'Transfer'); }
+function lineSub(l) { return l.kind === 'income' ? [l.source, l.account].filter(Boolean).join(' · ') : l.kind === 'expenses' ? [l.category, l.account].filter(Boolean).join(' · ') : l.from + ' → ' + l.to; }
+function openPayday() {
+  const saved = Array.isArray(S.prefs.template) && S.prefs.template.length > 0;
+  const lines = (saved ? S.prefs.template : defaultTemplate()).map(l => ({ ...l, on: true, uid: newId() }));
+  sheetCtx = { payday: true, lines, date: todayISO(), remember: true, derivedFrom: saved ? null : salaryDates()[0] };
+  drawPayday(); $('#overlay').classList.add('open');
+}
+function paydayTotals() {
+  const on = sheetCtx.lines.filter(l => l.on && l.amount > 0);
+  const t = k => sum(on.filter(l => l.kind === k));
+  return { n: on.length, text: [t('income') ? naira(t('income')) + ' in' : '', t('expenses') ? naira(t('expenses')) + ' spent' : '', t('transfers') ? naira(t('transfers')) + ' moved' : ''].filter(Boolean).join(' · ') };
+}
+function drawPayday() {
+  const st = sheetCtx, tot = paydayTotals();
+  const grp = (k, label) => {
+    const ls = st.lines.filter(l => l.kind === k); if (!ls.length) return '';
+    return `<div class="day">${label}</div><div class="list">${ls.map(l => `<div class="item pl ${l.on ? '' : 'off'}">
+      <input type="checkbox" data-pl="on" data-uid="${l.uid}" ${l.on ? 'checked' : ''} aria-label="Include this payday">
+      <div class="mid"><div class="t1">${esc(retitle(lineTitle(l), st.date))}</div><div class="t2">${esc(lineSub(l))}</div></div>
+      <input class="in sm num" inputmode="decimal" data-pl="amount" data-uid="${l.uid}" value="${NF.format(l.amount)}" aria-label="Amount">
+      <button class="rm" data-act="plRemove" data-uid="${l.uid}" aria-label="Remove from list">×</button></div>`).join('')}</div>`;
+  };
+  $('#panel').innerHTML = `<div class="grab"></div>
+    <div class="phead"><h3>Log payday</h3><button class="x" data-close>×</button></div>
+    ${st.lines.length ? `<p class="note" style="margin-top:0">${st.derivedFrom ? `Built from your ${fmtDM(st.derivedFrom)} entries. Tap × on anything that isn’t monthly.` : 'Your payday list.'} Untick a line to skip it just this time. Month names in descriptions update automatically.</p>` : `<p class="note" style="margin-top:0">Your payday list is empty. Open any entry in Activity and tap <b>Add to payday list</b>.</p>`}
+    <div class="fld" style="margin-top:12px"><label for="pd-date">Payday date</label><input type="date" class="in" id="pd-date" value="${st.date}"></div>
+    ${grp('income', 'Income')}${grp('expenses', 'Spending')}${grp('transfers', 'Transfers')}
+    <label class="check"><input type="checkbox" id="pd-remember" ${st.remember ? 'checked' : ''}> Remember this list and these amounts for next payday</label>
+    <div class="err" id="pd-err"></div>
+    <button class="btn" data-act="logPayday" ${tot.n ? '' : 'disabled'}>Log ${tot.n} entr${tot.n === 1 ? 'y' : 'ies'}</button>
+    <p class="note" id="pd-total" style="text-align:center">${tot.text}</p>
+    ${st.lines.length ? '<button class="linkbtn" data-act="savePaydayOnly">Save list without logging</button>' : ''}`;
+}
+function refreshPaydayTotals() {
+  const tot = paydayTotals(), b = $('[data-act="logPayday"]');
+  if (b) { b.textContent = 'Log ' + tot.n + ' entr' + (tot.n === 1 ? 'y' : 'ies'); b.disabled = !tot.n; }
+  const t = $('#pd-total'); if (t) t.textContent = tot.text;
+}
+function savePaydayTemplate() { S.prefs.template = sheetCtx.lines.map(({ on, uid, ...l }) => l); saveCache(); }
+function logPayday() {
+  const st = sheetCtx, date = $('#pd-date').value;
+  if (!date) { $('#pd-err').textContent = 'Pick the payday date.'; return; }
+  const on = st.lines.filter(l => l.on && l.amount > 0);
+  if (!on.length) return;
+  for (const l of on) { const { kind, on: _o, uid, ...f } = l; addEntry(kind, { ...f, desc: retitle(f.desc, date), amount: +l.amount, id: newId(), date }); }
+  if ($('#pd-remember').checked) savePaydayTemplate();
+  if (S.prefs.nextPayday && S.prefs.nextPayday <= date) delete S.prefs.nextPayday; // that payday has arrived
+  saveCache(); UI.cycle = null; UI.tab = 'home'; closeSheet(); render(); window.scrollTo(0, 0);
+  toast('Logged ' + on.length + ' payday entries');
+}
+
+/* ---------- PIN lock ---------- */
+const PIN_KEY = 'mt-pin';
+const getPin = () => lsGet(PIN_KEY);
+async function hashPin(pin, salt) {
+  const data = new TextEncoder().encode(salt + ':' + pin);
+  if (window.crypto && crypto.subtle) { const h = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+  let x = 2166136261; for (const b of data) x = Math.imul(x ^ b, 16777619) >>> 0; return 'f' + x.toString(16);
+}
+let pinEntry = '', lockMode = 'pin';
+function lockApp() { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); drawLock(); $('#lock').hidden = false; render(); }
+function drawLock(err = '') {
+  const box = $('#lockbox');
+  if (lockMode === 'forgot') {
+    const p = (S.meta && S.meta.pending) || 0;
+    box.innerHTML = `<div class="lk-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div>
+      <h2>Reset the app?</h2><p class="note" style="text-align:center">This deletes everything stored on this phone and removes the PIN. Then load your Excel file again from OneDrive.${p ? ` <b>${p} change${p > 1 ? 's' : ''} not yet saved to Excel will be lost.</b>` : ''}</p>
+      <button class="btn danger" style="margin-top:16px" data-act="resetApp">Reset app</button><button class="btn sec" data-act="lockBack">Back</button>`;
+    return;
+  }
+  box.innerHTML = `<div class="lk-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div>
+    <h2>Enter PIN</h2>
+    <div class="dots ${err ? 'shake' : ''}">${[0, 1, 2, 3].map(i => `<i class="${i < pinEntry.length ? 'f' : ''}"></i>`).join('')}</div>
+    <div class="lk-err">${esc(err)}</div>
+    <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-key="${n}">${n}</button>`).join('')}<button class="txt" data-act="forgotPin">Forgot?</button><button data-key="0">0</button><button class="txt" data-key="del" aria-label="Delete">⌫</button></div>`;
+}
+async function pressKey(k) {
+  if (k === 'del') pinEntry = pinEntry.slice(0, -1);
+  else if (pinEntry.length < 4) pinEntry += k;
+  drawLock();
+  if (pinEntry.length === 4) {
+    const p = getPin(), h = await hashPin(pinEntry, p.salt);
+    if (h === p.hash) { UI.locked = false; pinEntry = ''; $('#lock').hidden = true; render(); }
+    else { pinEntry = ''; drawLock('Wrong PIN, try again'); }
+  }
+}
+function openSetPin() {
+  openSheet(`<div class="phead"><h3>${getPin() ? 'Change PIN' : 'Set a PIN'}</h3><button class="x" data-close>×</button></div>
+    <div class="fld"><label for="pin1">New 4-digit PIN</label><input class="in" id="pin1" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+    <div class="fld"><label for="pin2">Type it again</label><input class="in" id="pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+    <div class="err" id="pin-err"></div>
+    <button class="btn" data-act="savePin">Save PIN</button>
+    <p class="note">If you forget it, you can reset the app from the lock screen and load your Excel file again, so keep saving to Excel.</p>`);
+  setTimeout(() => { const a = $('#pin1'); if (a) a.focus(); }, 250);
+}
+async function savePin() {
+  const a = $('#pin1').value, b = $('#pin2').value, err = m => { $('#pin-err').textContent = m; };
+  if (!/^\d{4}$/.test(a)) return err('Use exactly 4 numbers.');
+  if (a !== b) return err('The two PINs don’t match.');
+  const salt = newId(); lsSet(PIN_KEY, { salt, hash: await hashPin(a, salt) });
+  closeSheet(); render(); toast('PIN set. The app will ask for it when you open it.');
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) UI.hiddenAt = Date.now();
+  else if (getPin() && !UI.locked && UI.hiddenAt && Date.now() - UI.hiddenAt > 60000) lockApp();
+});
 
 function itemHtml(kind, e) {
   if (kind === 'expenses') return `<button class="item" data-act="edit" data-kind="expenses" data-id="${e.id}"><div class="ico">${esc((e.category || '?')[0])}</div><div class="mid"><div class="t1">${esc(e.desc || e.category)}</div><div class="t2">${esc([e.category, e.account, e.method].filter(Boolean).join(' · '))}</div></div><div class="amt num">−${naira(e.amount)}</div></button>`;
@@ -660,12 +873,28 @@ function groupedList(items) {
   return Object.keys(byDay).sort().reverse().map(d => `<div class="day">${fmtDay(d)}</div><div class="list">${byDay[d].slice().reverse().map(x => itemHtml(x.kind, x.e)).join('')}</div>`).join('');
 }
 function viewActivity() {
+  return `<div class="search"><input id="q" class="in" type="search" enterkeyhint="search" autocomplete="off" placeholder="Search all entries, e.g. Mum, betting, 100000" value="${esc(UI.q)}" aria-label="Search entries"></div>
+  <div id="actResults">${activityResults()}</div>`;
+}
+function searchHay(kind, e) { return [e.desc, e.category, e.source, e.account, e.method, e.from, e.to, kind === 'expenses' ? 'spent spending' : kind === 'income' ? 'income' : 'transfer', fmtDay(e.date), MONTHS_FULL[isoParts(e.date)[1] - 1], String(e.amount), NF.format(e.amount)].filter(Boolean).join(' ').toLowerCase(); }
+function activityResults() {
+  const q = UI.q.trim().toLowerCase();
+  if (!q) return activityList();
+  const words = q.split(/\s+/);
+  const items = []; KINDS.forEach(k => allOf(k).forEach(e => { const h = searchHay(k, e); if (words.every(w => h.includes(w))) items.push({ kind: k, e }); }));
+  const t = k => sum(items.filter(x => x.kind === k).map(x => x.e));
+  const lines = [['Spent', t('expenses')], ['Income', t('income')], ['Moved between accounts', t('transfers')]].filter(x => x[1] > 0);
+  return `<div class="sumcard"><div class="card-head" style="margin:0 0 ${lines.length ? 6 : 0}px"><h2>${items.length} match${items.length === 1 ? '' : 'es'}</h2><small>all time</small></div>
+    ${lines.map(([l, v]) => `<div class="kv"><span>${l}</span><span class="num"><b>${naira(v)}</b></span></div>`).join('')}</div>
+    ${groupedList(items)}`;
+}
+function activityList() {
   const r = cycleRange();
   const kinds = UI.filter === 'all' ? KINDS : [UI.filter];
   const items = []; kinds.forEach(k => allOf(k).forEach(e => { if (UI.scope === 'all' || inRange(e.date, r)) items.push({ kind: k, e }); }));
   const f = (v, l) => `<button class="chip ${UI.filter === v ? 'on' : ''}" data-act="filter" data-v="${v}">${l}</button>`;
   return `${UI.scope === 'cycle' ? cycleSelect() : ''}
-  <div class="filters" style="margin-top:12px">${f('all', 'All')}${f('expenses', 'Spending')}${f('income', 'Income')}${f('transfers', 'Transfers')}
+  <div class="filters" style="margin-top:8px">${f('all', 'All')}${f('expenses', 'Spending')}${f('income', 'Income')}${f('transfers', 'Transfers')}
   <button class="chip" data-act="scope">${UI.scope === 'cycle' ? 'Show all time' : 'This cycle only'}</button></div>
   ${groupedList(items)}`;
 }
@@ -718,6 +947,12 @@ function viewExcel() {
     </details>
     ${tooMany ? `<p class="note">Your Excel dashboard has rows for ${DASH_CAT_ROWS} categories and ${DASH_ACCT_ROWS} accounts. Extra ones are tracked here but won’t show on the Excel dashboard.</p>` : ''}
   </section>
+  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Payday list</h2><small>${Array.isArray(S.prefs.template) && S.prefs.template.length ? S.prefs.template.length + ' entries saved' : 'not saved yet'}</small></div>
+    <p class="note" style="margin:0 0 12px">The salary, allowances, bills and transfers you log every payday, all in one tap. To add something, open it in Activity and tap <b>Add to payday list</b>.</p>
+    <button class="btn sec" data-act="payday">Open payday list</button></section>
+  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2>${getPin() ? '<span class="badge ok">On</span>' : ''}</div>
+    <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your PIN when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
+    <button class="btn sec" data-act="setPin">${getPin() ? 'Change PIN' : 'Set a PIN'}</button>${getPin() ? '<button class="btn danger" data-act="removePin">Turn off PIN</button>' : ''}</section>
   <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>`;
 }
 
@@ -783,7 +1018,8 @@ function drawForm() {
     <div class="fld"><label for="f-date">Date</label><input type="date" class="in" id="f-date" value="${esc(v.date)}" data-field="date"></div>
     <div class="fld"><label for="f-desc">Description</label><input class="in" id="f-desc" value="${esc(v.desc || '')}" placeholder="${k === 'expenses' ? 'e.g. Chicken Republic' : k === 'income' ? 'e.g. November salary' : 'e.g. Monthly savings'}" data-field="desc"></div>
     <button class="btn" data-act="saveEntry">${st.editing ? 'Save changes' : 'Add'}</button>
-    ${st.editing ? `<button class="btn danger" data-act="delEntry">${st.confirmDel ? 'Tap again to delete' : 'Delete entry'}</button>` : ''}`;
+    ${st.editing ? `<button class="btn danger" data-act="delEntry">${st.confirmDel ? 'Tap again to delete' : 'Delete entry'}</button>
+    <button class="linkbtn" data-act="toTemplate">Add to payday list</button>` : ''}`;
 }
 function readAmount(s) { const n = parseFloat(String(s).replace(/[₦,\s]/g, '')); return isNaN(n) ? NaN : n; }
 function saveForm() {
@@ -806,9 +1042,10 @@ function findEntry(kind, id) { return allOf(kind).find(e => e.id === id); }
 
 /* ---------- events ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip]');
+  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key]');
   if (ev.target === $('#overlay')) { closeSheet(); return; }
   if (!t) return;
+  if (t.dataset.key) { pressKey(t.dataset.key); return; }
   if (t.dataset.tab) { UI.tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
   if (t.hasAttribute('data-close')) { closeSheet(); return; }
   if (t.dataset.seg && sheetCtx && sheetCtx.form) { syncFormInputs(); sheetCtx.kind = t.dataset.seg; const last = (lsGet('mt-last') || {})[t.dataset.seg] || {}; sheetCtx.v = { date: sheetCtx.v.date, amount: sheetCtx.v.amount, desc: sheetCtx.v.desc, ...last }; drawForm(); return; }
@@ -824,6 +1061,30 @@ document.addEventListener('click', ev => {
   else if (a === 'acct') openAccount(t.dataset.name);
   else if (a === 'filter') { UI.filter = t.dataset.v; render(); }
   else if (a === 'allBudgets') { UI.allBudgets = !UI.allBudgets; render(); }
+  else if (a === 'allCompare') { UI.allCompare = !UI.allCompare; render(); }
+  else if (a === 'payday') openPayday();
+  else if (a === 'plRemove') { sheetCtx.date = $('#pd-date').value || sheetCtx.date; sheetCtx.remember = $('#pd-remember').checked; sheetCtx.lines = sheetCtx.lines.filter(l => l.uid !== t.dataset.uid); drawPayday(); }
+  else if (a === 'logPayday') logPayday();
+  else if (a === 'savePaydayOnly') { savePaydayTemplate(); closeSheet(); render(); toast('Payday list saved'); }
+  else if (a === 'toTemplate') {
+    const e = findEntry(sheetCtx.kind, sheetCtx.editing); if (!e) return;
+    if (!Array.isArray(S.prefs.template) || !S.prefs.template.length) S.prefs.template = defaultTemplate();
+    const line = toLine(sheetCtx.kind, e), key = JSON.stringify(line);
+    if (S.prefs.template.some(l => JSON.stringify(l) === key)) { toast('Already on your payday list'); return; }
+    S.prefs.template.push(line); saveCache(); closeSheet(); render(); toast('Added to your payday list');
+  }
+  else if (a === 'nextPayday') openNextPayday();
+  else if (a === 'saveNextPayday') { const v = $('#np').value; if (v) { S.prefs.nextPayday = v; saveCache(); } closeSheet(); render(); }
+  else if (a === 'resetNextPayday') { delete S.prefs.nextPayday; saveCache(); closeSheet(); render(); }
+  else if (a === 'setPin') openSetPin();
+  else if (a === 'savePin') savePin();
+  else if (a === 'removePin') { try { localStorage.removeItem(PIN_KEY); } catch (e) {} render(); toast('PIN turned off'); }
+  else if (a === 'forgotPin') { lockMode = 'forgot'; drawLock(); }
+  else if (a === 'lockBack') { lockMode = 'pin'; pinEntry = ''; drawLock(); }
+  else if (a === 'resetApp') {
+    try { [CACHE_KEY, PIN_KEY, 'mt-last'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    applyAll({}); UI.locked = false; UI.cycle = null; UI.tab = 'home'; $('#lock').hidden = true; render(); toast('App reset. Load your Excel file to start again.', 4000);
+  }
   else if (a === 'scope') { UI.scope = UI.scope === 'cycle' ? 'all' : 'cycle'; render(); }
   else if (a === 'edit') { const e = findEntry(t.dataset.kind, t.dataset.id); if (e) openForm(t.dataset.kind, e); }
   else if (a === 'saveEntry') saveForm();
@@ -844,12 +1105,19 @@ document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.id === 'fileIn') { handleFile(t.files[0]); return; }
   if (t.matches('#panel select[data-field]')) { syncFormInputs(); drawForm(); return; }
+  if (sheetCtx && sheetCtx.payday) {
+    if (t.dataset.pl === 'on') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid); l.on = t.checked; t.closest('.pl').classList.toggle('off', !t.checked); refreshPaydayTotals(); return; }
+    if (t.dataset.pl === 'amount') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid), n = readAmount(t.value); if (!isNaN(n) && n >= 0) l.amount = n; t.value = NF.format(l.amount); refreshPaydayTotals(); return; }
+    if (t.id === 'pd-date' && t.value) { sheetCtx.date = t.value; sheetCtx.remember = $('#pd-remember').checked; drawPayday(); return; }
+  }
   const c = t.dataset.change;
   if (c === 'cycle') { UI.cycle = t.value; render(); }
   else if (c === 'budget') { const n = readAmount(t.value); const cat = S.setup.categories[+t.dataset.i]; if (!isNaN(n) && n >= 0 && n !== cat.budget) { cat.budget = n; bumpPending(); toast('Budget for ' + cat.name + ' set to ' + naira(n)); } else t.value = cat.budget; }
   else if (c === 'warn') { S.setup.warn = +t.value; bumpPending(); }
 });
 document.addEventListener('input', ev => {
+  if (ev.target.id === 'q') { UI.q = ev.target.value; const r = $('#actResults'); if (r) r.innerHTML = activityResults(); return; }
+  if (ev.target.dataset && ev.target.dataset.pl === 'amount' && sheetCtx && sheetCtx.payday) { const l = sheetCtx.lines.find(x => x.uid === ev.target.dataset.uid), n = readAmount(ev.target.value); if (l && !isNaN(n) && n >= 0) { l.amount = n; refreshPaydayTotals(); } return; }
   if (ev.target.id === 'f-amount') { const el = ev.target, raw = el.value.replace(/[^\d.]/g, ''); const [i, d] = raw.split('.'); const f = (i ? NF.format(+i) : '') + (d !== undefined ? '.' + d.slice(0, 2) : ''); if (f !== el.value) el.value = f; }
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.addrow')) ev.target.closest('.addrow').querySelector('button').click(); });
