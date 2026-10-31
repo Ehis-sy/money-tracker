@@ -747,7 +747,67 @@ function compareCard(r) {
 
 /* ---------- payday template ---------- */
 const retitle = (s, date) => String(s || '').replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g, MONTHS_FULL[isoParts(date)[1] - 1]);
-function toLine(kind, e) { const { id, date, ...rest } = e; return { kind, ...rest }; }
+function toLine(kind, e) { const { id, date, feeFor, ...rest } = e; return { kind, ...rest }; }
+
+/* ---------- bank charges ---------- */
+const CHARGES = 'Bank Charges';
+function ensureChargesCat() { if (!S.setup.categories.some(c => c.name === CHARGES)) { S.setup.categories.push({ name: CHARGES, budget: 3000 }); bumpPending(); } }
+// Typical cost of sending a transfer: CBN fee (free < ₦5k, ₦10 up to ₦50k, ₦50 above) + ₦50 stamp duty from ₦10k.
+function suggestFee(a) { if (!(a >= 5000)) return null; return (a <= 50000 ? 10 : 50) + (a >= 10000 ? 50 : 0); }
+function feeHint(a) {
+  const s = suggestFee(a); if (s === null) return a > 0 ? 'Transfers under ₦5,000 are usually free.' : '';
+  return `Usual for ${naira(a)}: <b>${naira(s)}</b>${a >= 10000 ? ' (bank fee + ₦50 stamp duty)' : ''}. Often free within the same bank or on fintech apps. <button type="button" class="linkbtn" style="display:inline;padding:0" data-fee="${s}">Use ${naira(s)}</button>`;
+}
+function linkedCharge(id) { return allOf('expenses').find(x => x.feeFor === id); }
+function syncFee(kind, e, fee) {
+  const existing = linkedCharge(e.id);
+  if (fee > 0) {
+    ensureChargesCat();
+    const ch = { id: existing ? existing.id : newId(), feeFor: e.id, date: e.date, category: CHARGES,
+      desc: 'Charge: ' + (e.desc || (kind === 'transfers' ? 'transfer to ' + e.to : e.category)),
+      account: kind === 'transfers' ? e.from : e.account,
+      method: kind === 'expenses' ? (e.method || '') : (S.setup.methods.includes('Bank Transfer') ? 'Bank Transfer' : ''), amount: fee };
+    if (existing) updateEntry('expenses', ch); else addEntry('expenses', ch);
+  } else if (existing) { removeEntry('expenses', existing.id); bumpPending(); }
+}
+
+/* ---------- balance check ---------- */
+const trackedBal = name => { const a = compute(cycleRange()).accts.find(x => x.name === name); return a ? a.bal : 0; };
+function openCheckBalance(name) {
+  const rec = (S.prefs.recon || {})[name];
+  openSheet(`<div class="phead"><h3>Check balance</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">Type the balance your bank app shows for <b>${esc(name)}</b> right now.</p>
+    <div class="amtwrap" style="margin-top:10px"><span>₦</span><input id="bal" inputmode="decimal" autocomplete="off" placeholder="0" data-money aria-label="Actual balance"></div>
+    <div class="err" id="bal-err"></div>
+    <button class="btn" data-act="runCheck" data-name="${esc(name)}">Check</button>
+    <p class="note">${rec ? 'Last checked ' + fmtStamp(rec.at) + '.' : 'The first check just sets a starting point, because this account had money in it before you started tracking. After that, every check shows any charges the bank took that you didn’t log.'}</p>`);
+  setTimeout(() => { const b = $('#bal'); if (b) b.focus(); }, 250);
+}
+function runCheck(name) {
+  const actual = readAmount($('#bal').value);
+  if (isNaN(actual)) { $('#bal-err').textContent = 'Type the balance as a number.'; return; }
+  S.prefs.recon ||= {};
+  const rec = S.prefs.recon[name], tracked = trackedBal(name), now = new Date().toISOString();
+  const head = `<div class="phead"><h3>${esc(name)}</h3><button class="x" data-close>×</button></div>`;
+  if (!rec) {
+    S.prefs.recon[name] = { offset: actual - tracked, at: now }; saveCache();
+    openSheet(head + `<p><b>Starting point set at ${naira(actual)}.</b></p><p class="note">Check again in a week or two. If the balance has dropped by more than what you logged, the app will show you the difference so you can record it as bank charges.</p><button class="btn sec" data-close>Done</button>`);
+    return;
+  }
+  const expected = tracked + rec.offset, diff = Math.round((actual - expected) * 100) / 100;
+  rec.at = now; saveCache();
+  sheetCtx = { recon: true, name, diff, actual };
+  const kv = `<div class="kv"><span>Your bank app shows</span><span class="num"><b>${naira(actual)}</b></span></div><div class="kv"><span>The app expected</span><span class="num">${naira(expected)}</span></div>`;
+  if (Math.abs(diff) < 0.5) { sheetCtx = null; openSheet(head + kv + `<p><span class="st ok">${ICON.ok} It matches.</span> Nothing’s missing.</p><button class="btn sec" data-close>Done</button>`, null); return; }
+  if (diff < 0) openSheet(head + kv + `<p><b>${naira(-diff)} less than expected.</b> That’s usually charges you didn’t see (transfer fees, stamp duty, SMS alerts, card fees) or a payment you haven’t logged.</p>
+      <button class="btn" data-act="reconLog">Log ${naira(-diff)} as Bank Charges</button>
+      <button class="btn sec" data-close>I’ll log the payment myself</button>
+      <button class="linkbtn" data-act="reconAccept">Just accept the new balance without logging it</button>`, sheetCtx);
+  else openSheet(head + kv + `<p><b>${naira(diff)} more than expected.</b> Maybe a refund, reversal or money in that you haven’t logged.</p>
+      <button class="btn" data-act="reconIncome">Log ${naira(diff)} as income</button>
+      <button class="btn sec" data-close>I’ll log it myself</button>
+      <button class="linkbtn" data-act="reconAccept">Just accept the new balance without logging it</button>`, sheetCtx);
+}
 function defaultTemplate() {
   const d = salaryDates()[0]; if (!d) return [];
   const lines = []; for (const k of KINDS) allOf(k).filter(e => e.date === d).forEach(e => lines.push(toLine(k, e)));
@@ -976,6 +1036,8 @@ function openAccount(name) {
     <div class="kv"><span>Balance (since tracking start)</span><span class="num"><b>${naira(a.bal)}</b></span></div>
     <div class="kv"><span>Money in this cycle</span><span class="num">${naira(a.mIn)}</span></div>
     <div class="kv"><span>Money out this cycle</span><span class="num">${naira(a.mOut)}</span></div>
+    <button class="btn sec" style="margin-top:10px" data-act="checkBal" data-name="${esc(name)}">Check balance against your bank app</button>
+    ${(S.prefs.recon || {})[name] ? `<p class="note" style="text-align:center">Last checked ${fmtStamp(S.prefs.recon[name].at)}</p>` : ''}
     ${groupedList(items)}`);
 }
 
@@ -985,6 +1047,8 @@ function openForm(kind = 'expenses', entry = null) {
   const st = sheetCtx = { form: true, kind, editing: entry ? entry.id : null, origKind: kind, confirmDel: false,
     v: entry ? { ...entry } : { date: todayISO(), amount: '', desc: '', ...(last[kind] || {}) } };
   if (!entry) st.v.amount = '';
+  st.v.fee = 0;
+  if (entry) { const ch = linkedCharge(entry.id); if (ch) st.v.fee = ch.amount; }
   drawForm();
   $('#overlay').classList.add('open');
   setTimeout(() => { const a = $('#f-amount'); if (a && !entry) a.focus(); }, 250);
@@ -1009,6 +1073,12 @@ function drawForm() {
   else body = `
     <div class="fld"><label>From</label>${acctSelect('from', v.from, 'From account')}</div>
     <div class="fld"><label>To</label>${acctSelect('to', v.to, 'To account')}${acctType(v.to) === 'Savings' && acctType(v.from) !== 'Savings' ? '<div class="hint">Counts as saved</div>' : ''}</div>`;
+  if (k !== 'income' && !v.feeFor && v.category !== CHARGES) {
+    const opts = [0, 10, 50, 60, 100], f = +v.fee || 0, other = v.feeOther || (f > 0 && !opts.includes(f));
+    body += `<div class="fld"><label>Bank charge</label><div class="chips">${opts.map(o => `<button type="button" class="chip ${!other && f === o ? 'on' : ''}" data-fee="${o}">${o ? naira(o) : 'None'}</button>`).join('')}<button type="button" class="chip ${other ? 'on' : ''}" data-fee="other">Other</button></div>
+      ${other ? `<input class="in" id="f-fee" inputmode="decimal" placeholder="Charge amount" value="${f ? NF.format(f) : ''}" data-money style="margin-top:8px">` : ''}
+      <div class="note" id="fee-hint" style="margin-top:6px">${k === 'transfers' || v.method === 'Bank Transfer' ? feeHint(+v.amount || 0) : ''}</div></div>`;
+  }
   $('#panel').innerHTML = `<div class="grab"></div>
     <div class="phead"><h3>${st.editing ? 'Edit entry' : 'New entry'}</h3><button class="x" data-close>×</button></div>
     <div class="seg">${seg('expenses', 'Spent')}${seg('income', 'Income')}${seg('transfers', 'Transfer')}</div>
@@ -1028,24 +1098,35 @@ function saveForm() {
   if (!(amount > 0)) return err('Enter an amount above zero.');
   if (!v.date) return err('Pick a date.');
   let e;
-  if (k === 'expenses') { if (!v.category) return err('Pick a category.'); if (!v.account) return err('Pick the account it was paid from.'); e = { date: v.date, category: v.category, desc: v.desc, account: v.account, method: v.method || '', amount }; }
+  syncFormInputs();
+  const fee = k === 'income' ? 0 : (+v.fee || 0);
+  if (fee < 0) return err('The bank charge can’t be negative.');
+  if (k === 'expenses') { if (!v.category) return err('Pick a category.'); if (!v.account) return err('Pick the account it was paid from.'); e = { date: v.date, category: v.category, desc: v.desc, account: v.account, method: v.method || '', amount }; if (v.feeFor) e.feeFor = v.feeFor; }
   else if (k === 'income') { if (!v.source) return err('Pick a source.'); if (!v.account) return err('Pick the account it landed in.'); e = { date: v.date, source: v.source, account: v.account, desc: v.desc, amount }; }
   else { if (!v.from || !v.to) return err('Pick both accounts.'); if (v.from === v.to) return err('From and To must be different accounts.'); e = { date: v.date, from: v.from, to: v.to, desc: v.desc, amount }; }
   const last = lsGet('mt-last') || {};
   last[k] = k === 'expenses' ? { account: e.account, method: e.method } : k === 'income' ? { account: e.account } : { from: e.from, to: e.to };
   lsSet('mt-last', last);
-  if (st.editing) { e.id = st.editing; updateEntry(k, e); toast('Updated'); }
-  else { e.id = newId(); addEntry(k, e); toast(k === 'expenses' ? 'Spending added' : k === 'income' ? 'Income added' : 'Transfer added'); }
+  const feeNote = fee > 0 ? ' + ' + naira(fee) + ' charge' : '';
+  if (st.editing) { e.id = st.editing; updateEntry(k, e); if (!e.feeFor && k !== 'income') syncFee(k, e, fee); toast('Updated' + feeNote); }
+  else { e.id = newId(); addEntry(k, e); if (k !== 'income') syncFee(k, e, fee); toast((k === 'expenses' ? 'Spending added' : k === 'income' ? 'Income added' : 'Transfer added') + feeNote); }
   closeSheet(); render();
 }
 function findEntry(kind, id) { return allOf(kind).find(e => e.id === id); }
 
 /* ---------- events ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key]');
+  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key],[data-fee]');
   if (ev.target === $('#overlay')) { closeSheet(); return; }
   if (!t) return;
   if (t.dataset.key) { pressKey(t.dataset.key); return; }
+  if (t.dataset.fee !== undefined && sheetCtx && sheetCtx.form) {
+    syncFormInputs();
+    if (t.dataset.fee === 'other') { sheetCtx.v.feeOther = true; if ([0, 10, 50, 60, 100].includes(+sheetCtx.v.fee)) sheetCtx.v.fee = 0; }
+    else { sheetCtx.v.feeOther = false; sheetCtx.v.fee = +t.dataset.fee; }
+    drawForm(); if (t.dataset.fee === 'other') setTimeout(() => { const f = $('#f-fee'); if (f) f.focus(); }, 50);
+    return;
+  }
   if (t.dataset.tab) { UI.tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
   if (t.hasAttribute('data-close')) { closeSheet(); return; }
   if (t.dataset.seg && sheetCtx && sheetCtx.form) { syncFormInputs(); sheetCtx.kind = t.dataset.seg; const last = (lsGet('mt-last') || {})[t.dataset.seg] || {}; sheetCtx.v = { date: sheetCtx.v.date, amount: sheetCtx.v.amount, desc: sheetCtx.v.desc, ...last }; drawForm(); return; }
@@ -1073,6 +1154,15 @@ document.addEventListener('click', ev => {
     if (S.prefs.template.some(l => JSON.stringify(l) === key)) { toast('Already on your payday list'); return; }
     S.prefs.template.push(line); saveCache(); closeSheet(); render(); toast('Added to your payday list');
   }
+  else if (a === 'checkBal') openCheckBalance(t.dataset.name);
+  else if (a === 'runCheck') runCheck(t.dataset.name);
+  else if (a === 'reconLog' || a === 'reconIncome') {
+    const { name, diff } = sheetCtx, today = todayISO();
+    if (a === 'reconLog') { ensureChargesCat(); addEntry('expenses', { id: newId(), date: today, category: CHARGES, desc: 'Charges found in balance check', account: name, method: '', amount: -diff }); }
+    else { const src = S.setup.sources.includes('Other Income') ? 'Other Income' : S.setup.sources.includes('Refund') ? 'Refund' : S.setup.sources[0]; addEntry('income', { id: newId(), date: today, source: src, account: name, desc: 'Found in balance check', amount: diff }); }
+    closeSheet(); render(); toast(a === 'reconLog' ? 'Logged ' + naira(-diff) + ' as Bank Charges' : 'Logged ' + naira(diff) + ' as income');
+  }
+  else if (a === 'reconAccept') { const { name, actual } = sheetCtx; S.prefs.recon[name] = { offset: actual - trackedBal(name), at: new Date().toISOString() }; saveCache(); closeSheet(); render(); toast('New balance accepted'); }
   else if (a === 'nextPayday') openNextPayday();
   else if (a === 'saveNextPayday') { const v = $('#np').value; if (v) { S.prefs.nextPayday = v; saveCache(); } closeSheet(); render(); }
   else if (a === 'resetNextPayday') { delete S.prefs.nextPayday; saveCache(); closeSheet(); render(); }
@@ -1088,7 +1178,7 @@ document.addEventListener('click', ev => {
   else if (a === 'scope') { UI.scope = UI.scope === 'cycle' ? 'all' : 'cycle'; render(); }
   else if (a === 'edit') { const e = findEntry(t.dataset.kind, t.dataset.id); if (e) openForm(t.dataset.kind, e); }
   else if (a === 'saveEntry') saveForm();
-  else if (a === 'delEntry') { if (!sheetCtx.confirmDel) { syncFormInputs(); sheetCtx.confirmDel = true; drawForm(); return; } removeEntry(sheetCtx.kind, sheetCtx.editing); bumpPending(); closeSheet(); render(); toast('Deleted'); }
+  else if (a === 'delEntry') { if (!sheetCtx.confirmDel) { syncFormInputs(); sheetCtx.confirmDel = true; drawForm(); return; } const ch = linkedCharge(sheetCtx.editing); removeEntry(sheetCtx.kind, sheetCtx.editing); if (ch) removeEntry('expenses', ch.id); bumpPending(); closeSheet(); render(); toast(ch ? 'Deleted, with its bank charge' : 'Deleted'); }
   else if (a === 'addCat') { const n = $('#newCat').value.trim(); if (!n) return; if (S.setup.categories.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That category already exists.'); S.setup.categories.push({ name: n, budget: 0 }); bumpPending(); render(); openDetails(0); toast('Category added — set its budget'); }
   else if (a === 'addAcct') { const n = $('#newAcct').value.trim(), ty = $('#newAcctType').value; if (!n) return; if (S.setup.accounts.some(c => c.name.toLowerCase() === n.toLowerCase())) return toast('That account already exists.'); S.setup.accounts.push({ name: n, type: ty, purpose: '' }); bumpPending(); render(); openDetails(1); toast('Account added'); }
   else if (a === 'addSrc' || a === 'addMeth') { const id = a === 'addSrc' ? '#newSrc' : '#newMeth', key = a === 'addSrc' ? 'sources' : 'methods'; const n = $(id).value.trim(); if (!n || S.setup[key].includes(n)) return; S.setup[key].push(n); bumpPending(); render(); openDetails(2); }
@@ -1099,6 +1189,7 @@ function syncFormInputs() {
   const v = sheetCtx.v, a = $('#f-amount'), d = $('#f-date'), s = $('#f-desc');
   if (a) { const n = readAmount(a.value); v.amount = isNaN(n) ? '' : n; }
   if (d) v.date = d.value; if (s) v.desc = s.value;
+  const ff = $('#f-fee'); if (ff) { const n = readAmount(ff.value); v.fee = isNaN(n) ? 0 : n; }
   document.querySelectorAll('#panel select[data-field]').forEach(x => { v[x.dataset.field] = x.value; });
 }
 document.addEventListener('change', ev => {
@@ -1118,7 +1209,8 @@ document.addEventListener('change', ev => {
 document.addEventListener('input', ev => {
   if (ev.target.id === 'q') { UI.q = ev.target.value; const r = $('#actResults'); if (r) r.innerHTML = activityResults(); return; }
   if (ev.target.dataset && ev.target.dataset.pl === 'amount' && sheetCtx && sheetCtx.payday) { const l = sheetCtx.lines.find(x => x.uid === ev.target.dataset.uid), n = readAmount(ev.target.value); if (l && !isNaN(n) && n >= 0) { l.amount = n; refreshPaydayTotals(); } return; }
-  if (ev.target.id === 'f-amount') { const el = ev.target, raw = el.value.replace(/[^\d.]/g, ''); const [i, d] = raw.split('.'); const f = (i ? NF.format(+i) : '') + (d !== undefined ? '.' + d.slice(0, 2) : ''); if (f !== el.value) el.value = f; }
+  if (ev.target.id === 'f-amount') { const h = $('#fee-hint'); if (h && sheetCtx && sheetCtx.form && (sheetCtx.kind === 'transfers' || sheetCtx.v.method === 'Bank Transfer')) h.innerHTML = feeHint(readAmount(ev.target.value) || 0); }
+  if (ev.target.id === 'f-amount' || (ev.target.hasAttribute && ev.target.hasAttribute('data-money'))) { const el = ev.target, raw = el.value.replace(/[^\d.]/g, ''); const [i, d] = raw.split('.'); const f = (i ? NF.format(+i) : '') + (d !== undefined ? '.' + d.slice(0, 2) : ''); if (f !== el.value) el.value = f; }
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.addrow')) ev.target.closest('.addrow').querySelector('button').click(); });
 $('#fab').addEventListener('click', () => openForm('expenses'));
