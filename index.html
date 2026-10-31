@@ -253,7 +253,7 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VERSION = '5 · 31 Oct 2026';
+const APP_VERSION = '1.2 · 31 Oct 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
 function allOf(kind) { const out = []; for (const k of Object.keys(S.months).sort()) for (const e of (S.months[k][kind] || [])) out.push(e); return out; }
