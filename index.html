@@ -534,19 +534,21 @@ async function doExport() {
   if (!S.file) { toast('Load your Excel file once first.'); return; }
   try { exportBlob = await buildWorkbook(); } catch (e) { toast('Couldn’t build the Excel file: ' + e.message, 5000); return; }
   const name = S.meta.fileName || 'Finance_Tracker.xlsx';
+  // Chrome on Android refuses to share .xlsx files, so Android goes straight to download.
+  const isAndroid = /Android/i.test(navigator.userAgent);
   let canShare = false;
-  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([exportBlob], name, { type: XLSX_MIME })] })); } catch (e) {}
+  try { canShare = !isAndroid && !!(navigator.canShare && navigator.canShare({ files: [new File([exportBlob], name, { type: XLSX_MIME })] })); } catch (e) {}
   openSheet(`<div class="phead"><h3>Your Excel file is ready</h3><button class="x" data-close>×</button></div>
     <p class="note" style="margin-top:0">It has everything in the app. Put it in OneDrive in place of the old copy.</p>
     ${canShare ? `<button class="btn" data-act="shareFile">Send to OneDrive</button>
     <ol class="steps"><li>In the share menu pick <b>OneDrive</b> (iPhone: <i>Save to Files</i> → <i>OneDrive</i>).</li><li>Go to the folder your tracker is in and save. If it asks, choose <b>Replace</b>.</li></ol>` : ''}
     <button class="btn ${canShare ? 'sec' : ''}" data-act="downloadFile">Download to this device</button>
-    ${canShare ? '' : `<ol class="steps"><li>The file goes to your Downloads.</li><li>Open the OneDrive app → the tracker’s folder → <b>+</b> → <i>Upload</i> → pick <i>${esc(name)}</i> → <b>Replace</b>.</li></ol>`}`);
+    ${canShare ? '' : `<ol class="steps"><li>The file goes to your <b>Downloads</b> folder.</li><li>Open the <b>OneDrive</b> app → go to your tracker’s folder → tap <b>+</b> → <b>Upload</b> → open <i>Downloads</i> → pick <i>${esc(name)}</i>.</li><li>If OneDrive asks, choose <b>Replace</b>. If it keeps both copies, delete the old one.</li><li>Then delete the file from Downloads, so the next download keeps the same name.</li></ol>`}`);
 }
 async function shareFile() {
   const name = S.meta.fileName || 'Finance_Tracker.xlsx';
   try { await navigator.share({ files: [new File([exportBlob], name, { type: XLSX_MIME })] }); markExported(); closeSheet(); toast('Sent. Your Excel is up to date.'); }
-  catch (e) { if (!e || e.name !== 'AbortError') toast('Couldn’t open the share menu. Try “Download to this device”.', 4000); }
+  catch (e) { if (!e || e.name !== 'AbortError') downloadFile(); }
 }
 function downloadFile() {
   const name = S.meta.fileName || 'Finance_Tracker.xlsx';
