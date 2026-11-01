@@ -340,6 +340,23 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 .cropmask::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,.85)}
 .zoomrow{display:flex;align-items:center;gap:12px;max-width:320px;margin:0 auto 14px;font-size:20px;color:var(--ink-2)}
 .zoomrow input{flex:1;accent-color:var(--accent)}
+
+.setwrap{max-width:640px;margin:0 auto}
+.sgh{font-size:12.5px;font-weight:700;color:var(--ink-2);margin:18px 6px 8px;letter-spacing:.02em}
+.sgh:first-child{margin-top:8px}
+.sgrp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.srow{display:flex;align-items:center;gap:12px;width:100%;background:none;border:none;border-top:1px solid var(--line);padding:14px 14px;text-align:left;font-size:15px;color:var(--ink);min-height:52px}
+.sgrp>.srow:first-child{border-top:none}
+.srow .sico{width:21px;height:21px;color:var(--ink-2);flex:none}
+.srow .st1{flex:1;min-width:0;font-weight:600}
+.srow .sst{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.srow .schev{width:18px;height:18px;color:var(--muted);flex:none;transition:transform .2s}
+.srow.open{background:var(--surface-2)}
+.srow.open .schev{transform:rotate(180deg)}
+.srow.dz .st1,.srow.dz .sico{color:var(--crit)}
+.sbody{padding:12px 14px 16px;border-top:1px solid var(--line);animation:sopen .18s ease-out}
+.sbody .subhead:first-child{margin-top:0;padding-top:0;border-top:none}
+@keyframes sopen{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -410,7 +427,7 @@ const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = iso
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '2.1', APP_LABEL = '2.1 Beta';
+const APP_VER = '2.2', APP_LABEL = '2.2 Beta';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -902,7 +919,7 @@ function render() {
     const old = b.querySelector('.dot'); if (old) old.remove();
     if (b.dataset.tab === 'excel' && S.meta.pending > 0) b.insertAdjacentHTML('beforeend', '<span class="dot">' + Math.min(S.meta.pending, 99) + '</span>');
   });
-  v.innerHTML = UI.tab === 'activity' ? viewActivity() : UI.tab === 'accounts' ? viewAccounts() : UI.tab === 'excel' ? '<div class="masonry">' + viewExcel() + '</div>' : viewHome();
+  v.innerHTML = UI.tab === 'activity' ? viewActivity() : UI.tab === 'accounts' ? viewAccounts() : UI.tab === 'excel' ? viewExcel() : viewHome();
 }
 
 function viewWelcome() {
@@ -1248,13 +1265,12 @@ function logPayday() {
 // Settings card
 function paydaySettingsCard() {
   const list = tpl(), derived = !list.length ? defaultTemplate() : [];
-  return `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Payday list</h2><small>${list.length ? list.length + ' item' + (list.length > 1 ? 's' : '') : 'empty'}</small></div>
-    <p class="note" style="margin:0 0 10px">What you log every payday: salary, allowances, transfers and bills. Nothing is logged until you tap <b>Log payday</b> on Home. Drag ⋮⋮ to reorder; tap an item to edit it.</p>
+  return `<p class="note" style="margin:0 0 10px">What you log every payday: salary, allowances, transfers and bills. Nothing is logged until you tap <b>Log payday</b> on Home. Drag ⋮⋮ to reorder; tap an item to edit it.</p>
     ${list.length ? `<div class="list" id="tplList">${list.map(l => `<div class="item tplrow" data-pid="${l.pid}"><span class="drag" data-drag="${l.pid}" aria-label="Drag to reorder" role="button" tabindex="0">⋮⋮</span>
       <button class="mid ebtn" data-act="tplEdit" data-pid="${l.pid}" style="font-weight:inherit"><div class="t1">${kindIcon(l.kind)} ${esc(lineTitle(l))}</div><div class="t2">${esc(lineSub(l))}${lineFeeTxt(l)}</div></button>
       <span class="amt num">${naira(l.amount)}</span></div>`).join('')}</div>`
       : derived.length ? `<p class="note">Want to start from your ${fmtDM(salaryDates()[0])} payday entries? You can remove anything that isn’t monthly afterwards.</p><button class="btn sec" data-act="tplAdopt">Use my ${fmtDM(salaryDates()[0])} entries</button>` : ''}
-    <button class="btn ${list.length ? 'sec' : ''}" style="margin-top:10px" data-act="tplAdd">+ Add item</button></section>`;
+    <button class="btn ${list.length ? 'sec' : ''}" style="margin-top:10px" data-act="tplAdd">+ Add item</button>`;
 }
 // Add / edit one payday item (from Settings or from the pop-up)
 function openTplItem(item, from) {
@@ -1340,11 +1356,10 @@ function feeChipsHtml(fee, attr) {
 function feeSettingsCard() {
   const c = Array.isArray(S.prefs.feeChips) ? S.prefs.feeChips : (DEF_CHIPS[CUR.code] || []), ng = CUR.code === 'NGN';
   const row = i => `<div class="fld" style="margin:0"><label for="fc${i}">${ng ? BANDS[i] : 'Charge ' + (i + 1)}</label><input class="in" id="fc${i}" inputmode="decimal" data-money value="${c[i] ? NF.format(c[i]) : ''}" placeholder="${ng ? NF.format(DEF_CHIPS.NGN[i]) : 'Not set'}"></div>`;
-  return `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Bank charges</h2></div>
-    <p class="note" style="margin:0 0 10px">${ng ? 'The charge buttons shown when you log a transfer or card/USSD payment. They follow the NIP transfer bands, and the right one is suggested from the amount.' : 'Up to three charge buttons shown when you log a payment or transfer.'}</p>
+  return `<p class="note" style="margin:0 0 10px">${ng ? 'The charge buttons shown when you log a transfer or card/USSD payment. They follow the NIP transfer bands, and the right one is suggested from the amount.' : 'Up to three charge buttons shown when you log a payment or transfer.'}</p>
     <div style="display:grid;gap:10px">${row(0)}${row(1)}${row(2)}</div>
     <button class="btn sec" style="margin-top:12px" data-act="saveChips">Save charges</button>
-    ${ng ? '<button class="linkbtn" data-act="resetChips">Reset to the standard NIP charges</button>' : ''}</section>`;
+    ${ng ? '<button class="linkbtn" data-act="resetChips">Reset to the standard NIP charges</button>' : ''}`;
 }
 
 
@@ -2099,37 +2114,43 @@ function viewAccounts() {
     <button class="item" data-act="acct" data-name="${esc(a.name)}"><div class="mid"><div class="t1">${esc(a.name)}</div><div class="t2">${esc(a.purpose || '')}</div></div>
     <div style="text-align:right"><div class="amt num">${naira(a.bal)}</div><div class="t2 num" style="font-size:12px;color:var(--ink-2)">${a.net >= 0 ? '+' : ''}${naira(a.net)} this cycle</div></div></button>`).join('')}</div></div>`; }).join('')}</div>`;
 }
+// Settings: a grouped list; tap a row to open it (one at a time). Everything starts closed.
+const SICON = {
+  payday: '<path d="M4 6h16v13H4z"/><path d="M4 10h16M8 3v4M16 3v4"/><path d="M12 13v4M10.5 14.2c0-.7.7-1.2 1.5-1.2s1.5.5 1.5 1.2-.7 1-1.5 1-1.5.4-1.5 1.1.7 1.2 1.5 1.2 1.5-.5 1.5-1.2"/>',
+  bills: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  quick: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
+  lists: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="5" cy="6" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="5" cy="18" r="1"/>',
+  charges: '<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  backup: '<path d="M7 18a4.5 4.5 0 0 1-.5-9A6 6 0 0 1 18 8a4 4 0 0 1 0 8"/><path d="M12 12v8M9 15l3-3 3 3"/>',
+  pdf: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  look: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  remind: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  share: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"/>',
+  logout: '<path d="M12 3v9"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
+  book: '<circle cx="12" cy="12" r="8"/><path d="M8.5 12h7"/>'
+};
+const sico = k => `<svg class="sico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SICON[k]}</svg>`;
+const CHEV = '<svg class="schev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+function srow(id, icon, title, status, body, opt = {}) {
+  const open = UI.setOpen === id && body;
+  const head = `<button class="srow ${opt.danger ? 'dz' : ''} ${open ? 'open' : ''}" ${opt.act ? `data-act="${opt.act}"` : `data-act="setSec" data-v="${id}"`} aria-expanded="${!!open}" id="sec-${id}">${sico(icon)}<span class="st1">${title}</span>${status ? `<span class="sst">${status}</span>` : ''}${opt.act ? '<span class="schev"></span>' : CHEV}</button>`;
+  return head + (open ? `<div class="sbody">${body}</div>` : '');
+}
+const sgroup = (label, rows) => `<div class="sgh">${label}</div><div class="sgrp">${rows}</div>`;
+const cnt = (n, one) => n ? n + ' ' + one + (n === 1 ? '' : 's') : 'None';
 function viewExcel() {
-  const p = S.meta.pending || 0;
+  const p = S.meta.pending || 0, o = UI.setOpen;
   const tooMany = S.setup.categories.length > DASH_CAT_ROWS || S.setup.accounts.length > DASH_ACCT_ROWS;
-  const snap = snapshots()[0], auto = lsGet('mt-autofile-last');
-  return `${paydaySettingsCard()}
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Backup &amp; restore</h2>${IS_NATIVE && auto ? '<span class="badge ok">Auto: ' + esc(fmtDM(auto.at.slice(0, 10))) + '</span>' : snap ? '<span class="badge ok">Auto: ' + esc(fmtDM(snap)) + '</span>' : ''}</div>
-    <p class="note" style="margin:0 0 12px">${IS_NATIVE ? 'A backup is saved every day in <b>' + FOLDER_SHOWN + '</b> on this phone. It stays even if you uninstall the app.' : 'Daily restore points, plus a backup file with everything for Google Drive or OneDrive.'}</p>
-    <button class="btn sec" data-act="openBackup">Backup files &amp; restore points</button>
-    <div class="subhead"><h3>Excel · ${esc(CUR.code)}</h3>${p ? `<span class="badge">${p} not in Excel</span>` : '<span class="badge ok">Up to date</span>'}</div>
-    <div class="kv"><span>File</span><span>${esc(exportName())}</span></div>
-    <div class="kv"><span>Loaded from Excel</span><span>${fmtStamp(S.meta.importedAt)}</span></div>
-    <div class="kv"><span>Last saved to Excel</span><span>${fmtStamp(S.meta.exportedAt)}</span></div>
-    <div style="margin-top:12px"><button class="btn" data-act="export">Save to Excel</button><button class="btn sec" data-act="import">Load from Excel</button></div>
-    <details style="margin-top:12px"><summary>How the app and Excel stay in step</summary>
-      <ol class="steps"><li><b>Logged things on your phone?</b> Tap <i>Save to Excel</i>${IS_NATIVE ? ' (a copy goes in ' + FOLDER_SHOWN + ')' : ''}, then put it in OneDrive in place of the old copy. Your dashboard, budgets and charts update when Excel opens it.</li>
-      <li><b>Edited the Excel on your laptop?</b> Tap <i>Load from Excel</i> and pick it from OneDrive. The app picks up your changes.</li>
-      <li>Save before you load, or changes made in the app since your last save are replaced.</li>
-      <li>Each currency has its own Excel file. The backup file above holds every currency.</li></ol>
-    </details>
-  </section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>PDF statement</h2></div>
-    <p class="note" style="margin:0 0 12px">Like a bank statement: pick the dates, accounts and categories, then print it, keep it or send it.</p>
-    <button class="btn sec" data-act="openStatement">Make a statement</button></section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Bills &amp; subscriptions</h2><small>${bills().length || 'none yet'}</small></div>
-    <p class="note" style="margin:0 0 12px">Rent, DStv, internet, school fees: reminders before each is due, and one-tap paying from Home.</p>
-    <button class="btn sec" data-act="manageBills">Manage bills</button></section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Quick add</h2><small>${favs().length || 'none yet'}</small></div>
-    <p class="note" style="margin:0 0 12px">One-tap buttons on Home for things you log often, like transport or airtime.</p>
-    <button class="btn sec" data-act="manageFavs">Manage quick adds</button></section>
-  <section class="card"><h2 style="margin-bottom:6px">Budgets &amp; lists</h2>
-    <p class="note" style="margin:0 0 4px">Tap a name to rename or delete it. Your existing entries update to match.</p>
+  const auto = lsGet('mt-autofile-last'), snap = snapshots()[0];
+  const b = id => o === id; // build a section's contents only when it's open
+  const lockTxt = getPin() ? 'The app asks for your ' + (lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN') + ' when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens.';
+  const money = [
+    srow('payday', 'payday', 'Payday list', tpl().length ? cnt(tpl().length, 'item') : 'Empty', b('payday') && paydaySettingsCard()),
+    srow('bills', 'bills', 'Bills and subscriptions', cnt(bills().length, 'bill'), b('bills') && `<p class="note" style="margin:0 0 12px">Rent, DStv, internet, school fees: reminders before each is due, and one-tap paying from Home.</p><button class="btn sec" data-act="manageBills">Manage bills</button>`),
+    srow('quick', 'quick', 'Quick add', favs().length ? cnt(favs().length, 'button') : 'None', b('quick') && `<p class="note" style="margin:0 0 12px">One-tap buttons on Home for things you log often, like transport or airtime.</p><button class="btn sec" data-act="manageFavs">Manage quick adds</button>`),
+    srow('lists', 'lists', 'Budgets and lists', S.setup.categories.length + ' categories', b('lists') && `<p class="note" style="margin:0 0 4px">Tap a name to rename or delete it. Your existing entries update to match.</p>
     <details data-det="cats" ${UI.det.cats ? 'open' : ''}><summary>Categories &amp; monthly budgets</summary>
       ${S.setup.categories.map((cat, i) => `<div class="erow"><button class="n ebtn" data-act="editItem" data-list="categories" data-i="${i}">${esc(cat.name)}<small>${(n => n === 1 ? '1 entry' : n + ' entries')(usageCount('categories', cat.name))}</small></button><input class="in sm num" inputmode="decimal" value="${NF.format(cat.budget)}" data-change="budget" data-i="${i}" aria-label="Budget for ${esc(cat.name)}"></div>`).join('')}
       <div class="addrow"><input class="in" id="newCat" placeholder="New category"><button data-act="addCat">Add</button></div>
@@ -2140,36 +2161,56 @@ function viewExcel() {
       <p class="note">Moving money into a <b>Savings</b>-type account counts as saved.</p>
     </details>
     <details data-det="lists" ${UI.det.lists ? 'open' : ''}><summary>Income sources &amp; payment methods</summary>
-      <div class="fld" style="margin-top:10px"><label>Income sources</label><div class="chips">${S.setup.sources.map((s, i) => `<button class="chip" data-act="editItem" data-list="sources" data-i="${i}">${esc(s)}</button>`).join('')}</div>
+      <div class="fld" style="margin-top:10px"><label>Income sources</label><div class="chips">${S.setup.sources.map((x, i) => `<button class="chip" data-act="editItem" data-list="sources" data-i="${i}">${esc(x)}</button>`).join('')}</div>
       <div class="addrow"><input class="in" id="newSrc" placeholder="New source"><button data-act="addSrc">Add</button></div></div>
-      <div class="fld"><label>Payment methods</label><div class="chips">${S.setup.methods.map((s, i) => `<button class="chip" data-act="editItem" data-list="methods" data-i="${i}">${esc(s)}</button>`).join('')}</div>
+      <div class="fld"><label>Payment methods</label><div class="chips">${S.setup.methods.map((x, i) => `<button class="chip" data-act="editItem" data-list="methods" data-i="${i}">${esc(x)}</button>`).join('')}</div>
       <div class="addrow"><input class="in" id="newMeth" placeholder="New method"><button data-act="addMeth">Add</button></div></div>
     </details>
     <details data-det="warn" ${UI.det.warn ? 'open' : ''}><summary>Near-limit warning</summary>
       <div class="erow"><div class="n">Warn when a budget is this full</div><select class="in" style="width:100px" data-change="warn">${[0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95].map(x => `<option value="${x}" ${Math.abs(x - S.setup.warn) < 1e-9 ? 'selected' : ''}>${Math.round(x * 100)}%</option>`).join('')}</select></div>
     </details>
-    ${tooMany ? `<p class="note">Your Excel dashboard has rows for ${DASH_CAT_ROWS} categories and ${DASH_ACCT_ROWS} accounts. Extra ones are tracked here but won’t show on the Excel dashboard.</p>` : ''}
-  </section>
-  ${feeSettingsCard()}
-  <section class="card"><div class="card-head" style="margin-bottom:10px"><h2>Appearance</h2></div>${themeSeg()}</section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2><span class="badge ok">On</span></div>
-    <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your ' + (lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN') + ' when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
+    ${tooMany ? `<p class="note">Your Excel dashboard has rows for ${DASH_CAT_ROWS} categories and ${DASH_ACCT_ROWS} accounts. Extra ones are tracked here but won’t show on the Excel dashboard.</p>` : ''}`),
+    srow('charges', 'charges', 'Bank charges', CUR.code === 'NGN' ? (Array.isArray(S.prefs.feeChips) ? 'Custom' : 'NIP') : (feeChips().length ? cnt(feeChips().length, 'button') : 'None'), b('charges') && feeSettingsCard())
+  ].join('');
+  const files = [
+    srow('backup', 'backup', 'Backup and Excel', p ? `<span class="badge">${p} not in Excel</span>` : '<span class="badge ok">Up to date</span>', b('backup') && `
+    <p class="note" style="margin:0 0 12px">${IS_NATIVE ? 'A backup is saved every day in <b>' + FOLDER_SHOWN + '</b> on this phone' + (auto ? ' (last: ' + esc(fmtStamp(auto.at)) + ')' : '') + '. It stays even if you uninstall the app.' : 'Daily restore points' + (snap ? ' (last: ' + esc(fmtDM(snap)) + ')' : '') + ', plus a backup file with everything for Google Drive or OneDrive.'}</p>
+    <button class="btn sec" data-act="openBackup">Backup files &amp; restore points</button>
+    <div class="subhead"><h3>Excel · ${esc(CUR.code)}</h3>${p ? `<span class="badge">${p} not in Excel</span>` : '<span class="badge ok">Up to date</span>'}</div>
+    <div class="kv"><span>File</span><span>${esc(exportName())}</span></div>
+    <div class="kv"><span>Loaded from Excel</span><span>${fmtStamp(S.meta.importedAt)}</span></div>
+    <div class="kv"><span>Last saved to Excel</span><span>${fmtStamp(S.meta.exportedAt)}</span></div>
+    <div style="margin-top:12px"><button class="btn" data-act="export">Save to Excel</button><button class="btn sec" data-act="import">Load from Excel</button></div>
+    <details style="margin-top:12px"><summary>How the app and Excel stay in step</summary>
+      <ol class="steps"><li><b>Logged things on your phone?</b> Tap <i>Save to Excel</i>${IS_NATIVE ? ' (a copy goes in ' + FOLDER_SHOWN + ')' : ''}, then put it in OneDrive in place of the old copy. Your dashboard, budgets and charts update when Excel opens it.</li>
+      <li><b>Edited the Excel on your laptop?</b> Tap <i>Load from Excel</i> and pick it from OneDrive. The app picks up your changes.</li>
+      <li>Save before you load, or changes made in the app since your last save are replaced.</li>
+      <li>Each currency has its own Excel file. The backup file holds every currency.</li></ol>
+    </details>`),
+    srow('pdf', 'pdf', 'PDF statement', '', b('pdf') && `<p class="note" style="margin:0 0 12px">Like a bank statement: pick the dates, accounts and categories, then print it, keep it or send it.</p><button class="btn sec" data-act="openStatement">Make a statement</button>`)
+  ].join('');
+  const app = [
+    srow('look', 'look', 'Appearance', { light: 'Light', dark: 'Dark', auto: 'Match phone' }[themeNow()], b('look') && themeSeg()),
+    srow('lock', 'lock', 'App lock', getPin() ? '<span class="badge ok">On</span>' : 'Off', b('lock') && `<p class="note" style="margin:0 0 12px">${lockTxt}</p>
     ${getPin() && UI.bioAvail ? (lsGet(BIO_KEY) ? '<div class="kv" style="margin-bottom:10px"><span>Fingerprint unlock</span><span class="st ok">' + ICON.ok + ' On</span></div><button class="btn sec" data-act="disableBio">Turn off fingerprint</button>' : '<button class="btn" data-act="enableBio">Unlock with fingerprint too</button>') : ''}
-    <button class="btn sec" data-act="setPin">Change PIN</button>
-    <button class="btn sec" data-act="logout">${IS_NATIVE ? 'Log out and close the app' : 'Log out'}</button></section>
-  ${IS_NATIVE ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Reminders</h2>${lsGet(REMIND_KEY) ? '<span class="badge ok">On</span>' : ''}</div>
-    <p class="note" style="margin:0 0 12px">A nudge when entries aren’t backed up to Excel for a week, and a reminder the day before payday.</p>
-    ${lsGet(REMIND_KEY) ? '<button class="btn sec" data-act="disableRem">Turn off reminders</button>' : '<button class="btn sec" data-act="enableRem">Turn on reminders</button>'}</section>` : ''}
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Share Money Tracker</h2></div>
-    <p class="note" style="margin:0 0 12px">Send the app to family or friends. They get their own empty tracker; none of your data is shared.</p>
-    ${IS_NATIVE ? '<button class="btn" data-act="shareApk">Send the app file</button><p class="note" style="margin:6px 2px 0">Goes by WhatsApp, Telegram, Bluetooth, Quick Share or email. Works for Android phones.</p>' : '<button class="btn sec" data-act="shareApp">Share a download link</button>'}</section>
-  ${REG.list.length > 1 ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>${esc(CUR.name)} tracker</h2></div>
-    <p class="note" style="margin:0 0 12px">Deleting removes this tracker and all its entries from this phone. Save to Excel first if you want to keep them.</p>
-    <button class="btn danger" data-act="deleteBook">${UI.confirmBookDel ? 'Tap again to delete the ' + esc(CUR.code) + ' tracker' : 'Delete the ' + esc(CUR.code) + ' tracker'}</button></section>` : ''}
-  ${IS_NATIVE ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Uninstall</h2></div>
-    <p class="note" style="margin:0 0 12px">Remove Money Tracker from this phone. You’ll get the chance to back up first.</p>
-    <button class="btn danger" data-act="uninstall">Uninstall Money Tracker</button></section>` : ''}
-  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only. ${IS_NATIVE ? 'Daily backups go to ' + FOLDER_SHOWN + ', and' : ''} your Excel file in OneDrive is a second backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml()}`;
+    <button class="btn sec" data-act="setPin">Change PIN</button>`),
+    IS_NATIVE ? srow('remind', 'remind', 'Reminders', lsGet(REMIND_KEY) ? '<span class="badge ok">On</span>' : 'Off', b('remind') && `<p class="note" style="margin:0 0 12px">A nudge when entries aren’t backed up to Excel for a week, and a reminder the day before payday.</p>
+    ${lsGet(REMIND_KEY) ? '<button class="btn sec" data-act="disableRem">Turn off reminders</button>' : '<button class="btn sec" data-act="enableRem">Turn on reminders</button>'}`) : '',
+    srow('share', 'share', 'Share Money Tracker', '', b('share') && `<p class="note" style="margin:0 0 12px">Send the app to family or friends. They get their own empty tracker; none of your data is shared.</p>
+    ${IS_NATIVE ? '<button class="btn" data-act="shareApk">Send the app file</button><p class="note" style="margin:6px 2px 0">Goes by WhatsApp, Telegram, Bluetooth, Quick Share or email. Works for Android phones.</p>' : '<button class="btn sec" data-act="shareApp">Share a download link</button>'}`)
+  ].join('');
+  const end = [
+    srow('logout', 'logout', 'Log out', '', '', { act: 'logout' }),
+    REG.list.length > 1 ? srow('book', 'book', 'Delete the ' + esc(CUR.code) + ' tracker', '', b('book') && `<p class="note" style="margin:0 0 12px">Removes this tracker and all its entries from this phone. Save to Excel first if you want to keep them.</p>
+    <button class="btn danger" data-act="deleteBook">${UI.confirmBookDel ? 'Tap again to delete the ' + esc(CUR.code) + ' tracker' : 'Delete the ' + esc(CUR.code) + ' tracker'}</button>`, { danger: true }) : '',
+    IS_NATIVE ? srow('uninstall', 'trash', 'Uninstall', '', '', { act: 'uninstall', danger: true }) : ''
+  ].join('');
+  return `<div class="setwrap">${sgroup('Money', money)}${sgroup('Backup and files', files)}${sgroup('App', app)}<div class="sgrp" style="margin-top:18px">${end}</div>
+  <p class="note" style="margin:16px 6px 20px">Your entries are saved on this phone only. ${IS_NATIVE ? 'Daily backups go to ' + FOLDER_SHOWN + ', and' : ''} your Excel file in OneDrive is a second backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml()}</div>`;
+}
+function toggleSec(id) {
+  UI.setOpen = UI.setOpen === id ? null : id; render();
+  if (UI.setOpen) { const el = document.getElementById('sec-' + id); if (el) { const r = el.getBoundingClientRect(); if (r.top < 70 || r.top > innerHeight * 0.45) window.scrollTo({ top: window.scrollY + r.top - 80, behavior: 'smooth' }); } }
 }
 
 /* ---------- drill-downs ---------- */
@@ -2290,7 +2331,7 @@ document.addEventListener('click', async ev => {
     drawForm(); if (t.dataset.fee === 'other') setTimeout(() => { const f = $('#f-fee'); if (f) f.focus(); }, 50);
     return;
   }
-  if (t.dataset.tab) { UI.tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  if (t.dataset.tab) { if (t.dataset.tab === 'excel' && UI.tab !== 'excel') UI.setOpen = null; UI.tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
   if (t.hasAttribute('data-close')) { closeSheet(); return; }
   if (t.dataset.seg && sheetCtx && sheetCtx.form) { syncFormInputs(); sheetCtx.kind = t.dataset.seg; const last = (lsGet(lastKey()) || {})[t.dataset.seg] || {}; sheetCtx.v = { date: sheetCtx.v.date, amount: sheetCtx.v.amount, desc: sheetCtx.v.desc, ...last }; drawForm(); return; }
   if (t.dataset.chip && sheetCtx && sheetCtx.form) { syncFormInputs(); const f = t.dataset.chip; sheetCtx.v[f] = sheetCtx.v[f] === t.dataset.v ? '' : t.dataset.v; drawForm(); return; }
@@ -2307,6 +2348,8 @@ document.addEventListener('click', async ev => {
   else if (a === 'allBudgets') { UI.allBudgets = !UI.allBudgets; render(); }
   else if (a === 'allCompare') { UI.allCompare = !UI.allCompare; render(); }
   else if (a === 'payday') openPayday();
+  else if (a === 'setSec') toggleSec(t.dataset.v);
+  else if (a === 'logoutYes') doLogout();
   else if (a === 'toggleHide') toggleHide();
   else if (a === 'logout') logout();
   else if (a === 'crPreset') { $('#cr-start').value = t.dataset.a; $('#cr-end').value = t.dataset.b; }
@@ -2372,7 +2415,7 @@ document.addEventListener('click', async ev => {
     closeSheet(); addCurrencyBook(code);
   }
   else if (a === 'deleteBook') { if (!UI.confirmBookDel) { UI.confirmBookDel = true; render(); setTimeout(() => { UI.confirmBookDel = false; }, 6000); return; } UI.confirmBookDel = false; deleteBook(REG.active); }
-  else if (a === 'goAccounts') { UI.tab = 'excel'; UI.det.accts = true; render(); const d = document.querySelector('[data-det="accts"]'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  else if (a === 'goAccounts') { UI.tab = 'excel'; UI.setOpen = 'lists'; UI.det.accts = true; render(); const d = document.querySelector('[data-det="accts"]'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else if (a === 'nativeShare') nativeShareFile();
   else if (a === 'enableRem') enableReminders();
   else if (a === 'disableRem') disableReminders();
@@ -2516,6 +2559,11 @@ function renderHeadBtns() {
 
 /* ---------- log out: lock, and close the app on the phone ---------- */
 function logout() {
+  openSheet(`<div class="phead"><h3>Log out?</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">${IS_NATIVE ? 'Money Tracker will lock and close.' : 'Money Tracker will lock.'} You’ll need your ${lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN'} to get back in. Nothing is deleted.</p>
+    <button class="btn" data-act="logoutYes">Log out</button><button class="btn sec" data-close>Cancel</button>`);
+}
+function doLogout() {
   closeSheet();
   if (!getPin()) { if (IS_NATIVE) NP.App.exitApp(); return; }
   lockApp(true);
