@@ -427,7 +427,7 @@ const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = iso
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '2.3', APP_LABEL = '2.3 Beta';
+const APP_VER = '2.4', APP_LABEL = '2.4 Beta';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -488,7 +488,7 @@ const Store = {
     playIntro();
     try { autoSnapshot(); } catch (e) {}
     setTimeout(autoFolderBackup, 6000);
-    if (getPin()) lockApp();
+    if (getPin()) { lockApp(); afterIntro(() => { if (UI.locked && lockMode === 'pin' && lsGet(BIO_KEY) && !UI.forceUpdate && !document.hidden) bioUnlock(); }); }
     UI.ready = true; render();
     bioAvailable().then(v => { UI.bioAvail = v; if (UI.tab === 'excel' && !UI.locked) render(); });
     setTimeout(checkUpdate, 1500);
@@ -1382,7 +1382,6 @@ if (IS_NATIVE) {
     if (!st.isActive) { UI.hiddenAt = Date.now(); bioBusy = false; bioSeq++; scheduleReminders(); }
     else {
       if (getPin() && !UI.locked && UI.hiddenAt && Date.now() - UI.hiddenAt > 60000) lockApp();
-      else if (UI.locked && lockMode === 'pin' && lsGet(BIO_KEY) && !UI.forceUpdate) setTimeout(() => { if (!document.hidden) bioUnlock(); }, 500); // still locked: ask for the fingerprint again
       if (!UI.lastUpdCheck || Date.now() - UI.lastUpdCheck > 10 * 60000) checkUpdate();
       setTimeout(autoFolderBackup, 3000);
     }
@@ -1531,13 +1530,15 @@ function logoSvg(size, label) {
 }
 const creditHtml = () => `<div class="credit">${logoSvg(22)}<span>Money Tracker · built by Ehis<small>Version ${APP_LABEL}</small></span></div>`;
 // Opening animation: once per launch, about 1.5 s, tap to skip.
+let introRunning = false; const introCbs = [];
+const afterIntro = f => { if (introRunning) introCbs.push(f); else setTimeout(f, 300); };
 function playIntro() {
   const el = $('#intro'); if (!el) return;
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   el.innerHTML = `<div class="ic">${logoSvg(124, true)}</div><div class="word"><b>Money Tracker</b><span>built by Ehis</span></div>`;
   el.hidden = false;
-  let done = false;
-  const finish = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('out'); }, 520); };
+  let done = false; introRunning = true;
+  const finish = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('out'); introRunning = false; introCbs.splice(0).forEach(f => { try { f(); } catch (e) {} }); }, 520); };
   el.addEventListener('click', finish, { once: true });
   setTimeout(finish, reduce ? 1200 : 3200);
 }
@@ -2015,8 +2016,9 @@ async function bioUnlock(force) {
   } catch (e) { if (my === bioSeq && UI.locked && lockMode === 'pin') drawLock(quiet(e) ? '' : 'Fingerprint didn’t work. Try again or use your PIN.'); }
   finally { if (my === bioSeq) bioBusy = false; }
 }
-function unlockApp() { UI.locked = false; pinEntry = ''; $('#lock').hidden = true; render(); }
-function lockApp(noBio) { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); closePhoto(); drawLock(); $('#lock').hidden = false; render(); if (lsGet(BIO_KEY) && !noBio) setTimeout(() => { if (!document.hidden) bioUnlock(); }, 500); }
+function unlockApp() { UI.locked = false; pinEntry = ''; UI.hiddenAt = null; $('#lock').hidden = true; render(); }
+// Locking shows the PIN pad only. The fingerprint pops up by itself just once: on a fresh open, after the opening animation.
+function lockApp() { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); closePhoto(); drawLock(); $('#lock').hidden = false; render(); }
 function drawLock(err = '') {
   const box = $('#lockbox');
   if (lockMode === 'forgot') {
@@ -2567,7 +2569,7 @@ function logout() {
 function doLogout() {
   closeSheet();
   if (!getPin()) { if (IS_NATIVE) NP.App.exitApp(); return; }
-  lockApp(true);
+  lockApp();
   if (IS_NATIVE) setTimeout(() => { try { NP.App.exitApp(); } catch (e) {} }, 120);
   else toast('Logged out');
 }
