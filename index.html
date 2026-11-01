@@ -345,7 +345,7 @@ const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = iso
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '1.7';
+const APP_VER = '1.8';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -1361,7 +1361,7 @@ function viewSetup() {
     <p class="note" style="text-align:center;margin:4px 0 0">${ob.photo ? '<button class="linkbtn" style="display:inline;padding:0" data-act="obPhotoRemove">Remove photo</button>' : 'Add a photo (optional)'}</p>
     <h2>${S.setup ? 'Let’s set up your profile' : 'Welcome to Money Tracker'}</h2>
     <p class="note" style="text-align:center;margin:0 0 16px">Your details stay on this phone. Nothing is sent anywhere.</p>
-    <div class="fld"><label for="obname">Your name</label><input class="in" id="obname" maxlength="40" autocomplete="name" placeholder="e.g. Chidi Okeke" value="${esc(ob.name)}"></div>
+    <div class="fld"><label for="obname">Your name</label><input class="in" id="obname" maxlength="40" autocomplete="name" placeholder="e.g. Favour Momodu" value="${esc(ob.name)}"></div>
     <div class="err" id="ob-err"></div>
     <button class="btn" data-act="obNext">Continue</button>${creditHtml()}</section>`;
   const confirming = !!ob.first;
