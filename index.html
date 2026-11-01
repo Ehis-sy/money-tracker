@@ -363,7 +363,7 @@ const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = iso
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '1.9';
+const APP_VER = '2.0';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -1312,6 +1312,35 @@ async function openInstaller() {
   try { await NP.Open.openFile({ path: UI.forceUpdate.file, mimeType: 'application/vnd.android.package-archive' }); }
   catch (e) { UI.forceUpdate.stage = 'ready'; UI.forceUpdate.error = 'Android couldn’t open the installer. Try again, or download it in the browser.'; drawUpdate(); }
 }
+// Send the installer itself. The file for this exact version is fetched from GitHub Releases once, then kept on the phone.
+async function shareApk() {
+  const L = appLinks(), repo = L.repo || ((L.releaseUrl || '').match(/github\.com\/([^/]+\/[^/]+)/) || [])[1];
+  const path = 'share/MoneyTracker-' + APP_VER + '.apk';
+  let uri = null;
+  try { const st = await NP.Fs.stat({ path, directory: 'CACHE' }); if (st && st.size > 1000000) uri = st.uri; } catch (e) {}
+  if (!uri) {
+    const prog = pct => openSheet(`<div class="phead"><h3>Getting the app file ready</h3><button class="x" data-close>×</button></div>
+      <p class="note" style="margin-top:0">This happens once. After that, sharing is instant and works without internet.</p>
+      <div class="track" style="margin:16px 0 8px;height:10px"><div class="fill" style="width:${Math.round(pct * 100)}%;background:var(--accent)"></div></div><p class="note" style="text-align:center">${Math.round(pct * 100)}%</p>`);
+    prog(0);
+    let sub = null;
+    try {
+      try { await NP.Fs.rmdir({ path: 'share', directory: 'CACHE', recursive: true }); } catch (e) {}
+      try { await NP.Fs.mkdir({ path: 'share', directory: 'CACHE', recursive: true }); } catch (e) {}
+      const { uri: u } = await NP.Fs.getUri({ path, directory: 'CACHE' });
+      sub = await NP.FT.addListener('progress', p => { if (p && p.type === 'download' && p.contentLength) prog(Math.min(1, p.bytes / p.contentLength)); });
+      const urls = [repo ? 'https://github.com/' + repo + '/releases/download/v' + APP_VER + '/MoneyTracker.apk' : null, L.apkUrl].filter(Boolean);
+      let ok = false;
+      for (const url of urls) { try { await NP.FT.downloadFile({ url, path: u, progress: true }); ok = true; break; } catch (e) {} }
+      if (!ok) throw new Error('download');
+      uri = u;
+    } catch (e) {
+      closeSheet(); toast('Couldn’t get the app file. Check your internet, or share a download link instead.', 5000); return;
+    } finally { try { if (sub && sub.remove) sub.remove(); } catch (e) {} }
+    closeSheet();
+  }
+  try { await NP.Share.share({ title: 'Money Tracker', text: 'Money Tracker: tap the file to install it (Android).', files: [uri], dialogTitle: 'Send Money Tracker' }); } catch (e) {}
+}
 async function shareApp() {
   const L = appLinks();
   const text = 'Money Tracker, a simple app for budgets, spending and savings.\n' + (L.apkUrl ? 'Android app: ' + L.apkUrl + '\n' : '') + (L.pagesUrl ? 'Or use it in your browser: ' + L.pagesUrl : '');
@@ -1970,7 +1999,8 @@ function viewExcel() {
     ${lsGet(REMIND_KEY) ? '<button class="btn sec" data-act="disableRem">Turn off reminders</button>' : '<button class="btn sec" data-act="enableRem">Turn on reminders</button>'}</section>` : ''}
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Share Money Tracker</h2></div>
     <p class="note" style="margin:0 0 12px">Send the app to family or friends. They get their own empty tracker; none of your data is shared.</p>
-    <button class="btn sec" data-act="shareApp">Share the app</button></section>
+    ${IS_NATIVE ? '<button class="btn" data-act="shareApk">Send the app file</button><p class="note" style="margin:6px 2px 10px">Goes by WhatsApp, Telegram, Bluetooth, Quick Share or email. Works for Android phones.</p>' : ''}
+    <button class="btn sec" data-act="shareApp">${IS_NATIVE ? 'Share a download link instead' : 'Share a download link'}</button></section>
   ${REG.list.length > 1 ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>${esc(CUR.name)} tracker</h2></div>
     <p class="note" style="margin:0 0 12px">Deleting removes this tracker and all its entries from this phone. Save to Excel first if you want to keep them.</p>
     <button class="btn danger" data-act="deleteBook">${UI.confirmBookDel ? 'Tap again to delete the ' + esc(CUR.code) + ' tracker' : 'Delete the ' + esc(CUR.code) + ' tracker'}</button></section>` : ''}
@@ -2134,6 +2164,7 @@ document.addEventListener('click', ev => {
   else if (a === 'enableRem') enableReminders();
   else if (a === 'disableRem') disableReminders();
   else if (a === 'shareApp') shareApp();
+  else if (a === 'shareApk') shareApk();
   else if (a === 'reloadApp') location.reload();
   else if (a === 'updDownload') downloadUpdate();
   else if (a === 'updInstall') openInstaller();
