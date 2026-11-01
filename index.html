@@ -59,7 +59,7 @@ header.top h1{font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em}
 main{padding:6px 14px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:12px 0;box-shadow:var(--shadow)}
 .card h2{font-size:15px;margin:0;font-weight:700}
-.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px 10px;margin-bottom:12px;flex-wrap:wrap}
 .card-head small{color:var(--ink-2);font-size:13px}
 .cycle{display:flex;align-items:center;gap:10px;margin:4px 2px 0}
 .cycle label{font-size:13px;color:var(--ink-2);white-space:nowrap}
@@ -193,12 +193,36 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 .steps-dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
 .steps-dots i.on{background:var(--accent)}
 [hidden]{display:none!important}
-.intro{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .35s ease}
+/* wide screens: tablets and phones turned sideways */
+@media (min-width: 720px){
+  #app{max-width:1440px}
+  header.top{padding:18px 24px 6px} .curbar{padding:2px 24px 4px} main{padding:6px 24px}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px;align-items:start}
+  .masonry{column-count:2;column-gap:20px}
+  .masonry>*{break-inside:avoid;display:inline-block;width:100%;vertical-align:top}
+  main .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  main .list .item{border-top:1px solid var(--line)}
+  main .list .item:nth-child(-n+2){border-top:none}
+  main .list .item:nth-child(odd){border-right:1px solid var(--line)}
+  main .list .empty{grid-column:1/-1}
+  nav.tabs .wrap{max-width:760px}
+  .fab{right:max(24px,env(safe-area-inset-right))}
+  .overlay{align-items:center}
+  .overlay .panel{border-radius:22px;max-height:90vh;margin:0 16px;transform:translateY(12px)}
+  .overlay .grab{display:none}
+  .hi b{max-width:40vw}
+}
+@media (min-width: 1180px){ .masonry{column-count:3} .cols{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+  main .list{grid-template-columns:repeat(3,minmax(0,1fr))}
+  main .list .item:nth-child(-n+3){border-top:none}
+  main .list .item:nth-child(odd){border-right:none} main .list .item:not(:nth-child(3n)){border-right:1px solid var(--line)} }
+@media (max-width: 360px){ .pbtn{padding:8px 11px;font-size:13px} select.pill{padding-right:28px;font-size:13.5px} .hero .big{font-size:32px} }
+.intro{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .5s ease}
 .intro.out{opacity:0;pointer-events:none}
-.intro .ic{width:124px;height:124px;border-radius:28px;box-shadow:0 18px 40px rgba(9,90,64,.28);animation:iconPop .55s cubic-bezier(.2,.8,.2,1) both}
-.intro .coin{animation:coinDrop .8s .25s cubic-bezier(.5,0,.4,1) both;transform-box:fill-box;transform-origin:50% 50%}
-.intro .wal{animation:walBounce .5s .78s ease-out both;transform-box:fill-box;transform-origin:50% 100%}
-.intro .word{display:flex;flex-direction:column;align-items:center;gap:4px;animation:wordIn .45s .95s ease-out both}
+.intro .ic{width:124px;height:124px;border-radius:28px;box-shadow:0 18px 40px rgba(9,90,64,.28);animation:iconPop .9s cubic-bezier(.2,.8,.2,1) both}
+.intro .coin{animation:coinDrop 1.2s .6s cubic-bezier(.5,0,.4,1) both;transform-box:fill-box;transform-origin:50% 50%}
+.intro .wal{animation:walBounce .7s 1.45s ease-out both;transform-box:fill-box;transform-origin:50% 100%}
+.intro .word{display:flex;flex-direction:column;align-items:center;gap:4px;animation:wordIn .7s 1.8s ease-out both}
 .intro .word b{font-size:28px;font-weight:800;letter-spacing:-.02em}
 .intro .word span{font-size:14.5px;font-weight:600;color:var(--ink-2)}
 @keyframes iconPop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.04);opacity:1}100%{transform:scale(1)}}
@@ -319,8 +343,9 @@ const lastKey = () => 'mt-last-' + CUR.code;
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
+const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '1.6';
+const APP_VER = '1.7';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -805,7 +830,7 @@ function render() {
     const old = b.querySelector('.dot'); if (old) old.remove();
     if (b.dataset.tab === 'excel' && S.meta.pending > 0) b.insertAdjacentHTML('beforeend', '<span class="dot">' + Math.min(S.meta.pending, 99) + '</span>');
   });
-  v.innerHTML = UI.tab === 'activity' ? viewActivity() : UI.tab === 'accounts' ? viewAccounts() : UI.tab === 'excel' ? viewExcel() : viewHome();
+  v.innerHTML = UI.tab === 'activity' ? viewActivity() : UI.tab === 'accounts' ? viewAccounts() : UI.tab === 'excel' ? '<div class="masonry">' + viewExcel() + '</div>' : viewHome();
 }
 
 function viewWelcome() {
@@ -825,7 +850,7 @@ function viewWelcome() {
 function cycleSelect() {
   const sd = salaryDates(), r = cycleRange();
   if (!sd.length) return `<div class="cycle"><label>Period</label><span class="pill" style="font-weight:600;font-size:14px">${fmtShort(r.start)} → now</span></div>`;
-  const opts = sd.map((d, i) => { const nx = sd[i - 1]; return `<option value="${d}" ${d === r.start ? 'selected' : ''}>${fmtShort(d)} → ${nx ? fmtShort(addDays(nx, -1)) : 'now'}</option>`; }).join('');
+  const opts = sd.map((d, i) => { const nx = sd[i - 1]; return `<option value="${d}" ${d === r.start ? 'selected' : ''}>${fmtCyc(d)} → ${nx ? fmtCyc(addDays(nx, -1)) : 'now'}</option>`; }).join('');
   return `<div class="cycle"><label for="cyc">Pay cycle</label><select id="cyc" class="pill" data-change="cycle">${opts}</select></div>`;
 }
 
@@ -864,7 +889,8 @@ function viewHome() {
     <button class="btn" data-act="reloadApp">Update now</button>
     <button class="linkbtn" data-act="updLater">Later</button></section>` : '';
   const noAcct = !S.setup.accounts.length ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Add your ${esc(CUR.name)} accounts</h2></div><p class="note" style="margin:0 0 12px">Add the bank accounts, wallets or cash you hold in ${esc(CUR.code)} so you can start logging.</p><button class="btn" data-act="goAccounts">Add accounts</button></section>` : '';
-  return `<div class="toprow">${cycleSelect()}<button class="pbtn" data-act="payday">Log payday</button></div>${upd}${noAcct}${remind}
+  return `<div class="cols"><div class="col">
+  <div class="toprow">${cycleSelect()}<button class="pbtn" data-act="payday">Log payday</button></div>${upd}${noAcct}${remind}
   <section class="card hero">
     <div class="lbl">Left to spend</div>
     <div class="big num">${naira(c.left)}</div>
@@ -877,6 +903,8 @@ function viewHome() {
       <div class="kpi"><div class="k">Savings rate</div><div class="v num">${pctTxt(c.rate)}</div></div>
     </div>
   </section>
+  ${r.nosalary ? '' : compareCard(r)}
+  </div><div class="col">
   <section class="card">
     <div class="card-head"><h2>Budget vs actual</h2><small class="num">${naira(c.spent - Math.max(0, c.uncategorised))} of ${naira(c.budgetTotal)}</small></div>
     ${rows || '<div class="empty" style="padding:8px 0 14px">Nothing spent yet this cycle.</div>'}
@@ -887,7 +915,7 @@ function viewHome() {
     <div class="card-head"><h2>Where it went</h2><small>this cycle</small></div>
     ${barsHtml}
   </section>
-  ${r.nosalary ? '' : compareCard(r)}`;
+  </div></div>`;
 }
 
 /* ---------- safe to spend per day ---------- */
@@ -1288,9 +1316,9 @@ function playIntro() {
   el.innerHTML = `<div class="ic">${logoSvg(124, true)}</div><div class="word"><b>Money Tracker</b><span>built by Ehis</span></div>`;
   el.hidden = false;
   let done = false;
-  const finish = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('out'); }, 380); };
+  const finish = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('out'); }, 520); };
   el.addEventListener('click', finish, { once: true });
-  setTimeout(finish, reduce ? 700 : 1650);
+  setTimeout(finish, reduce ? 1200 : 3200);
 }
 function setTheme(v) { lsSet('mt-theme', v); window.applyTheme(v); render(); }
 const themeNow = () => lsGet('mt-theme') || 'auto';
@@ -1333,7 +1361,7 @@ function viewSetup() {
     <p class="note" style="text-align:center;margin:4px 0 0">${ob.photo ? '<button class="linkbtn" style="display:inline;padding:0" data-act="obPhotoRemove">Remove photo</button>' : 'Add a photo (optional)'}</p>
     <h2>${S.setup ? 'Let’s set up your profile' : 'Welcome to Money Tracker'}</h2>
     <p class="note" style="text-align:center;margin:0 0 16px">Your details stay on this phone. Nothing is sent anywhere.</p>
-    <div class="fld"><label for="obname">Your name</label><input class="in" id="obname" maxlength="40" autocomplete="name" placeholder="e.g. Augustine Soro" value="${esc(ob.name)}"></div>
+    <div class="fld"><label for="obname">Your name</label><input class="in" id="obname" maxlength="40" autocomplete="name" placeholder="e.g. Chidi Okeke" value="${esc(ob.name)}"></div>
     <div class="err" id="ob-err"></div>
     <button class="btn" data-act="obNext">Continue</button>${creditHtml()}</section>`;
   const confirming = !!ob.first;
@@ -1489,7 +1517,7 @@ function itemHtml(kind, e) {
 function groupedList(items) {
   if (!items.length) return '<div class="list"><div class="empty">Nothing here yet.</div></div>';
   const byDay = {}; items.forEach(x => (byDay[x.e.date] ||= []).push(x));
-  return Object.keys(byDay).sort().reverse().map(d => `<div class="day">${fmtDay(d)}</div><div class="list">${byDay[d].slice().reverse().map(x => itemHtml(x.kind, x.e)).join('')}</div>`).join('');
+  return '<div class="dgrid">' + Object.keys(byDay).sort().reverse().map(d => `<div class="dgroup"><div class="day">${fmtDay(d)}</div><div class="list">${byDay[d].slice().reverse().map(x => itemHtml(x.kind, x.e)).join('')}</div></div>`).join('') + '</div>';
 }
 function viewActivity() {
   return `<div class="search"><input id="q" class="in" type="search" enterkeyhint="search" autocomplete="off" placeholder="Search all entries, e.g. Mum, betting, 100000" value="${esc(UI.q)}" aria-label="Search entries"></div>
@@ -1525,9 +1553,9 @@ function viewAccounts() {
   <section class="card"><div class="card-head"><h2>All accounts</h2><small>since tracking started</small></div>
     <div class="big num" style="font-size:30px;font-weight:800;letter-spacing:-.02em">${naira(total)}</div>
     <p class="note" style="margin-top:4px">Balances count only money tracked in this file, not what was already in each account before.</p></section>
-  ${types.map(t => { const list = c.accts.filter(a => (a.type || 'Other') === t); return `<div class="day">${esc(t)} · ${naira(list.reduce((s, a) => s + a.bal, 0))}</div><div class="list">${list.map(a => `
+  <div class="dgrid">${types.map(t => { const list = c.accts.filter(a => (a.type || 'Other') === t); return `<div class="dgroup"><div class="day">${esc(t)} · ${naira(list.reduce((s, a) => s + a.bal, 0))}</div><div class="list">${list.map(a => `
     <button class="item" data-act="acct" data-name="${esc(a.name)}"><div class="mid"><div class="t1">${esc(a.name)}</div><div class="t2">${esc(a.purpose || '')}</div></div>
-    <div style="text-align:right"><div class="amt num">${naira(a.bal)}</div><div class="t2 num" style="font-size:12px;color:var(--ink-2)">${a.net >= 0 ? '+' : ''}${naira(a.net)} this cycle</div></div></button>`).join('')}</div>`; }).join('')}`;
+    <div style="text-align:right"><div class="amt num">${naira(a.bal)}</div><div class="t2 num" style="font-size:12px;color:var(--ink-2)">${a.net >= 0 ? '+' : ''}${naira(a.net)} this cycle</div></div></button>`).join('')}</div></div>`; }).join('')}</div>`;
 }
 function viewExcel() {
   const p = S.meta.pending || 0;
