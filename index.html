@@ -206,8 +206,13 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 @keyframes walBounce{0%{transform:scale(1)}35%{transform:scale(1.06,.92)}70%{transform:scale(.98,1.03)}100%{transform:scale(1)}}
 @keyframes wordIn{0%{transform:translateY(10px);opacity:0}100%{transform:none;opacity:1}}
 @media (prefers-reduced-motion: reduce){.intro .ic,.intro .coin,.intro .wal,.intro .word{animation:none}.intro .coin{opacity:0}}
+.updscreen{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow:auto}
+.updscreen h2{margin:14px 0 0;font-size:22px}
+.updscreen svg[role=img]{border-radius:20px}
 .credit{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink-2);margin:18px 0 6px}
 .credit svg{flex:none;border-radius:6px}
+.credit span{display:flex;flex-direction:column;line-height:1.3}
+.credit small{font-size:11.5px;font-weight:600;color:var(--muted)}
 .seg3{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface-2);border-radius:12px;padding:4px}
 .seg3 button{border:none;background:none;border-radius:9px;padding:9px 0;font-weight:700;font-size:13.5px;color:var(--ink-2)}
 .seg3 button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -266,11 +271,12 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
   <button data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</button>
   <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>Activity</button>
   <button data-tab="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 15h2"/></svg>Accounts</button>
-  <button data-tab="excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M9 8l6 8M15 8l-6 8"/></svg>Excel</button>
+  <button data-tab="excel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
 </div></nav>
 <div class="overlay" id="overlay"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
 <div id="toast" role="status"></div>
 <div id="intro" class="intro" aria-hidden="true" hidden></div>
+<div id="upd" class="updscreen" hidden></div>
 <div id="lock" hidden><div class="lockbox" id="lockbox"></div></div>
 <input type="file" id="photoIn" class="sr" accept="image/*">
 <input type="file" id="fileIn" class="sr" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
@@ -314,7 +320,7 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '1.5';
+const APP_VER = '1.6';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -393,7 +399,7 @@ function updateSyncPill() {
   const el = $('#sync'), p = (S.meta && S.meta.pending) || 0;
   if (!S.setup) { el.className = 'sync'; el.querySelector('span').textContent = 'Not set up'; return; }
   el.className = 'sync ' + (p ? 'warn' : 'ok');
-  el.querySelector('span').textContent = p ? p + ' not in Excel' : 'Backed up to Excel';
+  el.querySelector('span').textContent = p ? p + ' not backed up' : 'Backed up';
 }
 
 /* ---------- currencies ---------- */
@@ -855,7 +861,7 @@ function viewHome() {
   const L = appLinks();
   const upd = UI.update && !UI.updHidden ? `<section class="card" style="border-color:var(--accent)"><div class="card-head" style="margin-bottom:6px"><h2>Version ${esc(UI.update.version)} is available</h2></div>
     ${UI.update.notes ? `<p class="note" style="margin:0 0 12px">${esc(UI.update.notes)}</p>` : ''}
-    ${IS_NATIVE ? `<a class="btn" style="text-decoration:none" href="${esc(L.apkUrl || L.releaseUrl || '#')}">Download the update</a><p class="note">Open the downloaded file and tap <b>Update</b>. Your entries stay.</p>` : '<button class="btn" data-act="reloadApp">Update now</button>'}
+    <button class="btn" data-act="reloadApp">Update now</button>
     <button class="linkbtn" data-act="updLater">Later</button></section>` : '';
   const noAcct = !S.setup.accounts.length ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Add your ${esc(CUR.name)} accounts</h2></div><p class="note" style="margin:0 0 12px">Add the bank accounts, wallets or cash you hold in ${esc(CUR.code)} so you can start logging.</p><button class="btn" data-act="goAccounts">Add accounts</button></section>` : '';
   return `<div class="toprow">${cycleSelect()}<button class="pbtn" data-act="payday">Log payday</button></div>${upd}${noAcct}${remind}
@@ -1134,16 +1140,20 @@ const IS_NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatfor
 const NP = {};
 if (IS_NATIVE) {
   const reg = window.Capacitor.registerPlugin;
-  Object.assign(NP, { App: reg('App'), Fs: reg('Filesystem'), Share: reg('Share'), Notif: reg('LocalNotifications'), Bio: reg('NativeBiometric') });
+  Object.assign(NP, { App: reg('App'), Fs: reg('Filesystem'), Share: reg('Share'), Notif: reg('LocalNotifications'), Bio: reg('NativeBiometric'), FT: reg('FileTransfer'), Open: reg('FileOpener') });
   NP.App.addListener('backButton', () => {
-    if ($('#overlay').classList.contains('open')) closeSheet();
+    if (UI.forceUpdate) NP.App.exitApp();
+    else if ($('#overlay').classList.contains('open')) closeSheet();
     else if (UI.locked) NP.App.exitApp();
     else if (UI.tab !== 'home') { UI.tab = 'home'; render(); window.scrollTo(0, 0); }
     else NP.App.exitApp();
   });
   NP.App.addListener('appStateChange', st => {
     if (!st.isActive) { UI.hiddenAt = Date.now(); scheduleReminders(); }
-    else if (getPin() && !UI.locked && UI.hiddenAt && Date.now() - UI.hiddenAt > 60000) lockApp();
+    else {
+      if (getPin() && !UI.locked && UI.hiddenAt && Date.now() - UI.hiddenAt > 60000) lockApp();
+      if (!UI.lastUpdCheck || Date.now() - UI.lastUpdCheck > 10 * 60000) checkUpdate();
+    }
   });
 }
 async function nativeShareFile() {
@@ -1192,8 +1202,59 @@ function appLinks() {
 const verParts = v => String(v).split('.').map(n => parseInt(n, 10) || 0);
 const isNewer = (a, b) => { const x = verParts(a), y = verParts(b); return x[0] > y[0] || (x[0] === y[0] && (x[1] || 0) > (y[1] || 0)); };
 async function checkUpdate() {
-  const L = appLinks(); if (!L.pagesUrl) return;
+  const L = appLinks(); UI.lastUpdCheck = Date.now();
+  if (IS_NATIVE) {
+    // The installed app asks GitHub for the latest *published* release, so it only asks people to update once the new APK exists.
+    const repo = L.repo || ((L.releaseUrl || '').match(/github\.com\/([^/]+\/[^/]+)/) || [])[1];
+    if (!repo) return;
+    try {
+      const r = await fetch('https://api.github.com/repos/' + repo + '/releases/latest', { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) return;
+      const j = await r.json(), ver = String(j.tag_name || '').replace(/^v/i, ''), apk = (j.assets || []).find(a => /\.apk$/i.test(a.name));
+      if (ver && apk && isNewer(ver, APP_VER) && !UI.forceUpdate) {
+        UI.forceUpdate = { version: ver, url: apk.browser_download_url, size: apk.size, stage: 'ready', pct: 0 };
+        try { const v = await (await fetch(L.pagesUrl + 'version.json?t=' + Date.now(), { cache: 'no-store' })).json(); if (v && v.version === ver) UI.forceUpdate.notes = v.notes; } catch (e) {}
+        drawUpdate();
+      }
+    } catch (e) {}
+    return;
+  }
+  if (!L.pagesUrl) return;
   try { const r = await fetch(L.pagesUrl + 'version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return; const j = await r.json(); if (j && j.version && isNewer(j.version, APP_VER)) { UI.update = j; if (!UI.locked) render(); } } catch (e) {}
+}
+// "Update required" screen: downloads the new APK inside the app, then hands it to Android's installer.
+function drawUpdate() {
+  const u = UI.forceUpdate, el = $('#upd'); if (!u || !el) return;
+  const mb = u.size ? ' (' + (u.size / 1048576).toFixed(1) + ' MB)' : '';
+  let body;
+  if (u.stage === 'downloading') body = `<div class="track" style="margin:22px 0 8px;height:10px"><div class="fill" style="width:${Math.round(u.pct * 100)}%;background:var(--accent)"></div></div><p class="note" style="text-align:center">Downloading… ${Math.round(u.pct * 100)}%</p>`;
+  else if (u.stage === 'installing') body = `<p class="note" style="text-align:center;margin-top:18px">Android will now ask you to install it. Tap <b>Update</b>.<br>The first time, Android asks you to allow Money Tracker to install updates: turn on <b>Allow from this source</b>, go back, then tap <b>Update</b>.</p>
+    <button class="btn" data-act="updInstall" style="margin-top:14px">Open the installer again</button>`;
+  else body = `${u.error ? `<p class="err" style="text-align:center;margin:14px 0 0">${esc(u.error)}</p>` : ''}
+    <button class="btn" data-act="updDownload" style="margin-top:20px">${u.error ? 'Try again' : 'Update now'}${mb}</button>
+    ${u.error ? `<a class="linkbtn" href="${esc(u.url)}" style="text-decoration:none;text-align:center">Download in the browser instead</a>` : ''}`;
+  el.innerHTML = `<div class="lockbox">${logoSvg(84, true)}<h2>Update required</h2>
+    <p class="note" style="text-align:center;margin:6px 0 0">Version ${esc(u.version)} is ready. Update to keep using Money Tracker. Your entries stay safe.</p>
+    ${u.notes ? `<p class="note" style="text-align:center;margin:8px 0 0"><b>New:</b> ${esc(u.notes)}</p>` : ''}${body}${creditHtml()}</div>`;
+  el.hidden = false;
+}
+async function downloadUpdate() {
+  const u = UI.forceUpdate; u.stage = 'downloading'; u.pct = 0; u.error = ''; drawUpdate();
+  let sub = null;
+  try {
+    const name = 'MoneyTracker-update.apk';
+    try { await NP.Fs.deleteFile({ path: name, directory: 'CACHE' }); } catch (e) {}
+    const { uri } = await NP.Fs.getUri({ path: name, directory: 'CACHE' });
+    sub = await NP.FT.addListener('progress', p => { if (p && p.type === 'download') { const t = p.contentLength || u.size; if (t) { u.pct = Math.min(1, p.bytes / t); drawUpdate(); } } });
+    await NP.FT.downloadFile({ url: u.url, path: uri, progress: true });
+    u.file = uri; u.stage = 'installing'; drawUpdate();
+    await openInstaller();
+  } catch (e) { u.stage = 'ready'; u.error = 'The download didn’t finish. Check your internet connection and try again.'; drawUpdate(); }
+  finally { try { if (sub && sub.remove) sub.remove(); } catch (e) {} }
+}
+async function openInstaller() {
+  try { await NP.Open.openFile({ path: UI.forceUpdate.file, mimeType: 'application/vnd.android.package-archive' }); }
+  catch (e) { UI.forceUpdate.stage = 'ready'; UI.forceUpdate.error = 'Android couldn’t open the installer. Try again, or download it in the browser.'; drawUpdate(); }
 }
 async function shareApp() {
   const L = appLinks();
@@ -1219,12 +1280,12 @@ function logoSvg(size, label) {
     `<g class="wal"><rect x="21" y="41" width="58" height="40" rx="10" fill="#03291D" fill-opacity="0.28"/><rect x="20" y="37" width="60" height="42" rx="10" fill="#fff"/>` +
     `<path d="M26 37 L58 27 Q62 26 63 30 L65 37 Z" fill="#7FE0B4"/><rect x="58" y="50" width="24" height="16" rx="7" fill="#0B6E4F"/><circle cx="67" cy="58" r="3.2" fill="#fff"/></g></svg>`;
 }
-const creditHtml = (extra = '') => `<p class="credit">${logoSvg(20)}<span>Money Tracker${extra} · Built by Ehis</span></p>`;
+const creditHtml = () => `<div class="credit">${logoSvg(22)}<span>Money Tracker · built by Ehis<small>Version ${APP_VER}</small></span></div>`;
 // Opening animation: once per launch, about 1.5 s, tap to skip.
 function playIntro() {
   const el = $('#intro'); if (!el) return;
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  el.innerHTML = `<div class="ic">${logoSvg(124, true)}</div><div class="word"><b>Money Tracker</b><span>Built by Ehis</span></div>`;
+  el.innerHTML = `<div class="ic">${logoSvg(124, true)}</div><div class="word"><b>Money Tracker</b><span>built by Ehis</span></div>`;
   el.hidden = false;
   let done = false;
   const finish = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('out'); }, 380); };
@@ -1523,7 +1584,7 @@ function viewExcel() {
   ${REG.list.length > 1 ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>${esc(CUR.name)} tracker</h2></div>
     <p class="note" style="margin:0 0 12px">Deleting removes this tracker and all its entries from this phone. Save to Excel first if you want to keep them.</p>
     <button class="btn danger" data-act="deleteBook">${UI.confirmBookDel ? 'Tap again to delete the ' + esc(CUR.code) + ' tracker' : 'Delete the ' + esc(CUR.code) + ' tracker'}</button></section>` : ''}
-  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml(' ' + APP_VER)}`;
+  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml()}`;
 }
 
 /* ---------- drill-downs ---------- */
@@ -1683,6 +1744,8 @@ document.addEventListener('click', ev => {
   else if (a === 'disableRem') disableReminders();
   else if (a === 'shareApp') shareApp();
   else if (a === 'reloadApp') location.reload();
+  else if (a === 'updDownload') downloadUpdate();
+  else if (a === 'updInstall') openInstaller();
   else if (a === 'updLater') { UI.updHidden = true; render(); }
   else if (a === 'editItem') openEditItem(t.dataset.list, +t.dataset.i);
   else if (a === 'saveItem') saveItem();
