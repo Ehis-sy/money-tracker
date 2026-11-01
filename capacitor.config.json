@@ -1,0 +1,7 @@
+{
+  "appId": "com.moneytracker.app",
+  "appName": "Money Tracker",
+  "webDir": "www",
+  "android": { "allowMixedContent": false, "backgroundColor": "#f3f2ee" },
+  "plugins": { "LocalNotifications": { "smallIcon": "ic_stat_money", "iconColor": "#0b6e4f" } }
+}
