@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b6e4f">
+<script>
+// Light / Dark / Match phone: set before the page paints
+(function () {
+  var pref = 'auto'; try { pref = JSON.parse(localStorage.getItem('mt-theme')) || 'auto'; } catch (e) {}
+  var mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  window.applyTheme = function (p) {
+    pref = p || pref;
+    var dark = pref === 'dark' || (pref === 'auto' && mq && mq.matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', dark ? '#111110' : '#f3f2ee');
+  };
+  if (mq && mq.addEventListener) mq.addEventListener('change', function () { if (pref === 'auto') applyTheme(); });
+  applyTheme();
+})();
+</script>
 <title>Money Tracker</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -23,13 +38,11 @@
   --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
   --r:18px;
 }
-@media (prefers-color-scheme: dark){
-  :root{
+:root[data-theme="dark"]{
     color-scheme: dark;
     --bg:#111110; --surface:#1a1a19; --surface-2:#232321; --ink:#f0efec; --ink-2:#c3c2b7; --muted:#8f8e86; --line:#2d2c2a;
     --accent:#2fa57a; --accent-ink:#06140e; --accent-soft:#16301f; --income:#4cc38a;
     --bar:#3987e5; --track:#2a2a28; --shadow:none;
-  }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.4}
@@ -57,7 +70,7 @@ select.pill{appearance:none;-webkit-appearance:none;background:var(--surface) ur
 .hero .sub{font-size:12.5px;opacity:.8}
 .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
 .kpi{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 12px}
-@media (prefers-color-scheme: dark){.kpi{background:rgba(0,0,0,.14)}}
+:root[data-theme="dark"] .kpi{background:rgba(0,0,0,.14)}
 .kpi .k{font-size:12px;opacity:.85;font-weight:600}
 .kpi .v{font-size:17px;font-weight:800;margin-top:2px}
 .brow{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 0;border-top:1px solid var(--line)}
@@ -180,13 +193,31 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 .steps-dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
 .steps-dots i.on{background:var(--accent)}
 [hidden]{display:none!important}
+.intro{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .35s ease}
+.intro.out{opacity:0;pointer-events:none}
+.intro .ic{width:124px;height:124px;border-radius:28px;box-shadow:0 18px 40px rgba(9,90,64,.28);animation:iconPop .55s cubic-bezier(.2,.8,.2,1) both}
+.intro .coin{animation:coinDrop .8s .25s cubic-bezier(.5,0,.4,1) both;transform-box:fill-box;transform-origin:50% 50%}
+.intro .wal{animation:walBounce .5s .78s ease-out both;transform-box:fill-box;transform-origin:50% 100%}
+.intro .word{display:flex;flex-direction:column;align-items:center;gap:4px;animation:wordIn .45s .95s ease-out both}
+.intro .word b{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.intro .word span{font-size:14.5px;font-weight:600;color:var(--ink-2)}
+@keyframes iconPop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.04);opacity:1}100%{transform:scale(1)}}
+@keyframes coinDrop{0%{transform:translateY(-70px);opacity:0}25%{opacity:1}70%{transform:translateY(14px)}85%{transform:translateY(10px)}100%{transform:translateY(12px);opacity:0}}
+@keyframes walBounce{0%{transform:scale(1)}35%{transform:scale(1.06,.92)}70%{transform:scale(.98,1.03)}100%{transform:scale(1)}}
+@keyframes wordIn{0%{transform:translateY(10px);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.intro .ic,.intro .coin,.intro .wal,.intro .word{animation:none}.intro .coin{opacity:0}}
+.credit{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink-2);margin:18px 0 6px}
+.credit svg{flex:none;border-radius:6px}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface-2);border-radius:12px;padding:4px}
+.seg3 button{border:none;background:none;border-radius:9px;padding:9px 0;font-weight:700;font-size:13.5px;color:var(--ink-2)}
+.seg3 button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .toprow .cycle{min-width:0;flex:1}
 .pbtn{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;color:var(--accent);margin-top:4px}
 .perday{display:block;width:100%;text-align:left;background:rgba(255,255,255,.12);border:none;color:inherit;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px;line-height:1.35}
 .perday b{font-size:16px}
-@media (prefers-color-scheme: dark){.perday{background:rgba(0,0,0,.14)}}
+:root[data-theme="dark"] .perday{background:rgba(0,0,0,.14)}
 .crow{padding:10px 0;border-top:1px solid var(--line)}
 .crow:first-of-type{border-top:none;padding-top:0}
 .crow .l1{display:flex;justify-content:space-between;gap:8px;font-size:14.5px}
@@ -239,6 +270,7 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 </div></nav>
 <div class="overlay" id="overlay"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
 <div id="toast" role="status"></div>
+<div id="intro" class="intro" aria-hidden="true" hidden></div>
 <div id="lock" hidden><div class="lockbox" id="lockbox"></div></div>
 <input type="file" id="photoIn" class="sr" accept="image/*">
 <input type="file" id="fileIn" class="sr" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
@@ -282,7 +314,7 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '1.4';
+const APP_VER = '1.5';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -339,6 +371,7 @@ const Store = {
     if (REG.active) { setCurrency(REG.active); applyAll(lsGet(curKey()) || {}); }
     // Ask the browser to keep this app's data even when space runs low.
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    playIntro();
     if (getPin()) lockApp();
     UI.ready = true; render();
     bioAvailable().then(v => { UI.bioAvail = v; if (UI.tab === 'excel' && !UI.locked) render(); });
@@ -772,12 +805,14 @@ function render() {
 function viewWelcome() {
   const sel = `<select class="in" id="firstcur">${COMMON_CUR.map(c => `<option value="${c}" ${c === (UI.firstCur || 'NGN') ? 'selected' : ''}>${esc(curInfo(c).name)} (${esc(curInfo(c).symbol)})</option>`).join('')}</select>`;
   return `<section class="card welcome">
-    <h2>Welcome to Money Tracker</h2>
+    <div style="display:flex;justify-content:center;margin:4px 0 6px">${logoSvg(72, true)}</div>
+    <h2 style="text-align:center">Welcome to Money Tracker</h2>
     <p>Track what comes in, what you spend and what you save, with budgets and a pay-cycle dashboard. Everything stays on this phone.</p>
     <div class="fld"><label for="firstcur">Currency</label>${sel}</div>
     <button class="btn" data-act="startFresh">Start fresh</button>
     <button class="btn sec" data-act="pick">I already have a tracker Excel file</button>
     <p class="note">Start fresh gives you ready-made categories and accounts you can rename, delete or add to. You can add more currencies later.</p>
+    ${creditHtml()}
   </section>`;
 }
 
@@ -1171,6 +1206,35 @@ async function shareApp() {
 }
 
 
+
+/* ---------- the Money Tracker logo (wallet with gold coin) ---------- */
+let logoN = 0;
+function logoSvg(size, label) {
+  const u = 'lg' + (logoN++);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" ${label ? 'role="img" aria-label="Money Tracker logo"' : 'aria-hidden="true"'}><defs>` +
+    `<linearGradient id="${u}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16946A"/><stop offset="1" stop-color="#095A40"/></linearGradient>` +
+    `<linearGradient id="${u}c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD66B"/><stop offset="1" stop-color="#E39A1B"/></linearGradient></defs>` +
+    `<rect width="100" height="100" rx="22" fill="url(#${u}b)"/><path d="M0 22 A22 22 0 0 1 22 0 H78 A22 22 0 0 1 100 22 V40 C70 30 30 30 0 40 Z" fill="#fff" fill-opacity="0.08"/>` +
+    `<g class="coin"><circle cx="44" cy="31" r="11" fill="url(#${u}c)"/><circle cx="44" cy="31" r="7" fill="none" stroke="#B87512" stroke-opacity="0.55" stroke-width="1.6"/></g>` +
+    `<g class="wal"><rect x="21" y="41" width="58" height="40" rx="10" fill="#03291D" fill-opacity="0.28"/><rect x="20" y="37" width="60" height="42" rx="10" fill="#fff"/>` +
+    `<path d="M26 37 L58 27 Q62 26 63 30 L65 37 Z" fill="#7FE0B4"/><rect x="58" y="50" width="24" height="16" rx="7" fill="#0B6E4F"/><circle cx="67" cy="58" r="3.2" fill="#fff"/></g></svg>`;
+}
+const creditHtml = (extra = '') => `<p class="credit">${logoSvg(20)}<span>Money Tracker${extra} · Built by Ehis</span></p>`;
+// Opening animation: once per launch, about 1.5 s, tap to skip.
+function playIntro() {
+  const el = $('#intro'); if (!el) return;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.innerHTML = `<div class="ic">${logoSvg(124, true)}</div><div class="word"><b>Money Tracker</b><span>Built by Ehis</span></div>`;
+  el.hidden = false;
+  let done = false;
+  const finish = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('out'); }, 380); };
+  el.addEventListener('click', finish, { once: true });
+  setTimeout(finish, reduce ? 700 : 1650);
+}
+function setTheme(v) { lsSet('mt-theme', v); window.applyTheme(v); render(); }
+const themeNow = () => lsGet('mt-theme') || 'auto';
+const themeSeg = () => `<div class="seg3" role="group" aria-label="Appearance">${[['light', 'Light'], ['dark', 'Dark'], ['auto', 'Match phone']].map(([v, l]) => `<button type="button" data-act="theme" data-v="${v}" class="${themeNow() === v ? 'on' : ''}" aria-pressed="${themeNow() === v}">${l}</button>`).join('')}</div>`;
+
 /* ---------- profile & first-run setup ---------- */
 const PROFILE_KEY = 'mt-profile';
 const getProfile = () => lsGet(PROFILE_KEY);
@@ -1210,7 +1274,7 @@ function viewSetup() {
     <p class="note" style="text-align:center;margin:0 0 16px">Your details stay on this phone. Nothing is sent anywhere.</p>
     <div class="fld"><label for="obname">Your name</label><input class="in" id="obname" maxlength="40" autocomplete="name" placeholder="e.g. Augustine Soro" value="${esc(ob.name)}"></div>
     <div class="err" id="ob-err"></div>
-    <button class="btn" data-act="obNext">Continue</button></section>`;
+    <button class="btn" data-act="obNext">Continue</button>${creditHtml()}</section>`;
   const confirming = !!ob.first;
   return `<section class="card ob">${dots(2)}${avatarHtml({ name: ob.name, photo: ob.photo }, 'md')}
     <h2>${confirming ? 'Type your PIN again' : 'Create a 4-digit PIN'}</h2>
@@ -1218,7 +1282,7 @@ function viewSetup() {
     <div class="dots ${UI.obErr ? 'shake' : ''}">${[0, 1, 2, 3].map(i => `<i class="${i < ob.entry.length ? 'f' : ''}"></i>`).join('')}</div>
     <div class="lk-err">${esc(UI.obErr || '')}</div>
     <div class="pad" style="max-width:300px;margin:6px auto 0">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-obkey="${n}">${n}</button>`).join('')}<button class="txt" data-act="obBack">Back</button><button data-obkey="0">0</button><button class="txt" data-obkey="del" aria-label="Delete">⌫</button></div>
-    <p class="note" style="text-align:center;margin-top:16px">If you ever forget it, the only way back in is to reset the app, which deletes your entries on this phone. Save to Excel regularly so you always have a backup.</p></section>`;
+    <p class="note" style="text-align:center;margin-top:16px">If you ever forget it, the only way back in is to reset the app, which deletes your entries on this phone. Save to Excel regularly so you always have a backup.</p>${creditHtml()}</section>`;
 }
 async function obKey(k) {
   const ob = UI.ob; UI.obErr = '';
@@ -1252,6 +1316,7 @@ function drawProfile(name) {
     ${st.photo ? '<button class="linkbtn" data-act="profPhotoRemove">Remove photo</button>' : ''}
     <div class="fld" style="margin-top:14px"><label for="prname">Your name</label><input class="in" id="prname" maxlength="40" value="${esc(name)}"></div>
     <div class="err" id="pr-err"></div>
+    <div class="fld" style="margin-top:6px"><label>Appearance</label>${themeSeg()}</div>
     <button class="btn" data-act="saveProfile">Save</button>
     <button class="btn sec" data-act="setPin">Change PIN</button>`;
 }
@@ -1321,7 +1386,7 @@ function drawLock(err = '') {
     <div class="dots ${err ? 'shake' : ''}">${[0, 1, 2, 3].map(i => `<i class="${i < pinEntry.length ? 'f' : ''}"></i>`).join('')}</div>
     <div class="lk-err">${esc(err)}</div>
     ${lsGet(BIO_KEY) ? '<button class="btn sec" data-act="bioUnlock" style="margin-top:6px">Use fingerprint</button>' : ''}
-    <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-key="${n}">${n}</button>`).join('')}<button class="txt" data-act="forgotPin">Forgot?</button><button data-key="0">0</button><button class="txt" data-key="del" aria-label="Delete">⌫</button></div>`;
+    <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-key="${n}">${n}</button>`).join('')}<button class="txt" data-act="forgotPin">Forgot?</button><button data-key="0">0</button><button class="txt" data-key="del" aria-label="Delete">⌫</button></div>${creditHtml()}`;
 }
 async function pressKey(k) {
   if (k === 'del') pinEntry = pinEntry.slice(0, -1);
@@ -1444,6 +1509,7 @@ function viewExcel() {
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Payday list</h2><small>${Array.isArray(S.prefs.template) && S.prefs.template.length ? S.prefs.template.length + ' entries saved' : 'not saved yet'}</small></div>
     <p class="note" style="margin:0 0 12px">The salary, allowances, bills and transfers you log every payday, all in one tap. To add something, open it in Activity and tap <b>Add to payday list</b>.</p>
     <button class="btn sec" data-act="payday">Open payday list</button></section>
+  <section class="card"><div class="card-head" style="margin-bottom:10px"><h2>Appearance</h2></div>${themeSeg()}</section>
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2><span class="badge ok">On</span></div>
     <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your ' + (lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN') + ' when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
     ${getPin() && UI.bioAvail ? (lsGet(BIO_KEY) ? '<div class="kv" style="margin-bottom:10px"><span>Fingerprint unlock</span><span class="st ok">' + ICON.ok + ' On</span></div><button class="btn sec" data-act="disableBio">Turn off fingerprint</button>' : '<button class="btn" data-act="enableBio">Unlock with fingerprint too</button>') : ''}
@@ -1457,7 +1523,7 @@ function viewExcel() {
   ${REG.list.length > 1 ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>${esc(CUR.name)} tracker</h2></div>
     <p class="note" style="margin:0 0 12px">Deleting removes this tracker and all its entries from this phone. Save to Excel first if you want to keep them.</p>
     <button class="btn danger" data-act="deleteBook">${UI.confirmBookDel ? 'Tap again to delete the ' + esc(CUR.code) + ' tracker' : 'Delete the ' + esc(CUR.code) + ' tracker'}</button></section>` : ''}
-  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.<br><span style="color:var(--muted)">App version ${APP_VERSION}</span></p>`;
+  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml(' ' + APP_VER)}`;
 }
 
 /* ---------- drill-downs ---------- */
@@ -1637,6 +1703,7 @@ document.addEventListener('click', ev => {
   else if (a === 'setPin') openSetPin();
   else if (a === 'savePin') savePin();
   else if (a === 'profile') openProfile();
+  else if (a === 'theme') { setTheme(t.dataset.v); if (sheetCtx && sheetCtx.profile) drawProfile($('#prname') ? $('#prname').value : ''); }
   else if (a === 'obPhoto' || a === 'profPhoto') pickPhoto(a);
   else if (a === 'obPhotoRemove') { UI.ob.name = ($('#obname') || {}).value || UI.ob.name; UI.ob.photo = null; render(); }
   else if (a === 'profPhotoRemove') { sheetCtx.photo = null; drawProfile($('#prname').value); }
