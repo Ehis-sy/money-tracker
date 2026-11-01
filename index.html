@@ -296,13 +296,57 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 .pad button.txt{border:none;background:none;font-size:13.5px;color:var(--ink-2);font-weight:600}
 .shake{animation:shake .32s}
 @keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+
+/* 2.1 */
+.hright{display:flex;align-items:center;gap:6px;min-width:0}
+.hbtns{display:flex;gap:4px}
+.ibtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);display:grid;place-items:center;padding:0;flex:none}
+.ibtn svg{width:18px;height:18px}
+.sync{white-space:nowrap}.sync .sht{display:none}
+@media (max-width:440px){.sync .sht{display:inline}}
+@media (max-width:440px){.sync span .lng{display:none}}
+@media (max-width:350px){.sync span{display:none}.sync{padding:7px}}
+.kico{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:800;margin-right:2px;vertical-align:1px}
+.kico.inc{background:var(--accent-soft);color:var(--income)}
+.tplrow{touch-action:pan-y;position:relative;background:var(--surface)}
+.tplrow .drag{flex:none;width:22px;margin-left:-4px;color:var(--muted);font-size:18px;letter-spacing:-3px;cursor:grab;touch-action:none;user-select:none;text-align:center;padding:6px 0}
+.tplrow.dragging{z-index:2;box-shadow:0 6px 20px rgba(0,0,0,.18);border-radius:12px;opacity:.96}
+.subhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+.subhead h3{margin:0;font-size:15.5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stdet{margin:4px 0 10px}
+.cardbtn{display:block;width:100%;background:none;border:none;padding:0;text-align:left;color:inherit}
+.fcwarn{margin:10px 0 0;font-size:13.5px;color:var(--crit);font-weight:600;display:flex;gap:6px;align-items:flex-start}
+.fcwarn.near{color:var(--ink)}
+.fcwarn svg{flex:none;width:15px;height:15px;margin-top:2px}
+.fcbig{margin:6px 0 12px;padding:10px 4px 2px;background:var(--surface-2);border-radius:12px}
+.neg{color:var(--crit)}
+.goal{display:block;width:100%;background:none;border:none;border-top:1px solid var(--line);padding:12px 0;text-align:left;color:inherit}
+.goal:first-of-type{border-top:none;padding-top:4px}
+.goal .l1,.goal .l2{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.goal .l2{font-size:12.5px;color:var(--ink-2);margin-top:6px}
+.avawrap{position:relative;width:96px;margin:6px auto 4px}
+.avawrap .avapick{margin:0}
+.avawrap .cam{position:absolute;right:-2px;bottom:-2px;width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;border:3px solid var(--surface);padding:0}
+.avawrap .cam svg{width:15px;height:15px}
+.avalinks{display:flex;justify-content:center;gap:16px}
+.avalinks .linkbtn{width:auto}
+.photoview{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center}
+.photoview img{width:min(86vw,86vh,520px);height:min(86vw,86vh,520px);border-radius:50%;object-fit:cover;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.photoview .x{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:26px}
+.cropbox{position:relative;width:min(100%,320px);aspect-ratio:1;margin:8px auto 12px;border-radius:14px;overflow:hidden;background:#000;touch-action:none;cursor:grab}
+.cropbox canvas{width:100%;height:100%;display:block}
+.cropmask{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at center,transparent 0,transparent calc(50% - 1px),rgba(0,0,0,.55) 50%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.0)}
+.cropmask::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,.85)}
+.zoomrow{display:flex;align-items:center;gap:12px;max-width:320px;margin:0 auto 14px;font-size:20px;color:var(--ink-2)}
+.zoomrow input{flex:1;accent-color:var(--accent)}
 </style>
 </head>
 <body>
 <div id="app">
   <header class="top">
     <button class="who" id="who" data-act="profile" aria-label="Your profile"><span class="ava" id="hava"></span><span class="hi"><small id="hhi">Money Tracker</small><b id="hname"></b></span></button>
-    <div class="sync" id="sync"><i></i><span>Loading…</span></div>
+    <div class="hright"><div class="sync" id="sync"><i></i><span>Loading…</span></div><div class="hbtns" id="hbtns" hidden></div></div>
   </header>
   <div class="curbar" id="curbar" hidden></div>
   <main id="view"><div class="skel"></div><div class="skel"></div></main>
@@ -318,6 +362,7 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 <div id="toast" role="status"></div>
 <div id="intro" class="intro" aria-hidden="true" hidden></div>
 <div id="upd" class="updscreen" hidden></div>
+<div id="photoView" class="photoview" hidden></div>
 <div id="lock" hidden><div class="lockbox" id="lockbox"></div></div>
 <input type="file" id="photoIn" class="sr" accept="image/*">
 <input type="file" id="restoreIn" class="sr" accept=".json,application/json">
@@ -332,7 +377,9 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const NF = new Intl.NumberFormat('en-NG', {maximumFractionDigits: 2});
 let CUR = { code: 'NGN', symbol: '₦', name: 'Nigerian Naira', prefix: '₦' }; // the tracker on screen
-const naira = n => (n < 0 ? '−' : '') + CUR.prefix + NF.format(Math.abs(Math.round((+n || 0) * 100) / 100));
+let HIDE = false; try { HIDE = JSON.parse(localStorage.getItem('mt-hide')) === 1; } catch (e) {}
+const nairaRaw = n => (n < 0 ? '−' : '') + CUR.prefix + NF.format(Math.abs(Math.round((+n || 0) * 100) / 100));
+const naira = n => HIDE ? CUR.prefix + '•••••' : nairaRaw(n);
 const pctTxt = p => Math.round(p * 100) + '%';
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -363,7 +410,7 @@ const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = iso
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '2.0';
+const APP_VER = '2.1', APP_LABEL = '2.1 Beta';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -371,6 +418,7 @@ function allOf(kind) { const out = []; for (const k of Object.keys(S.months).sor
 function acctType(name) { const a = (S.setup?.accounts || []).find(x => x.name === name); return a ? a.type : ''; }
 function salaryDates() { return [...new Set(allOf('income').filter(e => e.source === 'Salary').map(e => e.date))].sort().reverse(); }
 function cycleRange() {
+  if (UI.custom) return { start: UI.custom.start, end: UI.custom.end, custom: true };
   const sd = salaryDates();
   const start = (UI.cycle && sd.includes(UI.cycle)) ? UI.cycle : sd[0];
   if (!start) { const t = todayISO(); return { start: t.slice(0, 8) + '01', end: null, nosalary: true }; }
@@ -422,6 +470,7 @@ const Store = {
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
     playIntro();
     try { autoSnapshot(); } catch (e) {}
+    setTimeout(autoFolderBackup, 6000);
     if (getPin()) lockApp();
     UI.ready = true; render();
     bioAvailable().then(v => { UI.bioAvail = v; if (UI.tab === 'excel' && !UI.locked) render(); });
@@ -443,7 +492,7 @@ function updateSyncPill() {
   const el = $('#sync'), p = (S.meta && S.meta.pending) || 0;
   if (!S.setup) { el.className = 'sync'; el.querySelector('span').textContent = 'Not set up'; return; }
   el.className = 'sync ' + (p ? 'warn' : 'ok');
-  el.querySelector('span').textContent = p ? p + ' not backed up' : 'Backed up';
+  el.querySelector('span').innerHTML = p ? p + '<span class="lng"> not backed up</span><span class="sht"> unsaved</span>' : 'Backed up';
 }
 
 /* ---------- currencies ---------- */
@@ -732,7 +781,7 @@ async function buildWorkbook() {
   if (book.tables.tblPayMethods) await writeTable(book, 'tblPayMethods', S.setup.methods.map(s => ({ 'Payment Method': s })));
   const wt = nameTarget(book, 'WarnThreshold'); if (wt) await setCellValue(book, wt.sheet, wt.ref, +S.setup.warn || 0.8);
   const r = cycleRange();
-  const cRef = await findValidationCell(book, 'Dashboard', 'SalaryDates'); if (cRef && !r.nosalary) await setCellValue(book, 'Dashboard', cRef, { date: r.start });
+  const cRef = await findValidationCell(book, 'Dashboard', 'SalaryDates'); if (cRef && !r.nosalary && !r.custom) await setCellValue(book, 'Dashboard', cRef, { date: r.start });
   const dRef = await findValidationCell(book, 'Dashboard', 'CategoryList');
   if (dRef) { const cur = (await cellMap(book, book.sheets['Dashboard']))[dRef]; if (!S.setup.categories.some(c => c.name === cur) && S.setup.categories[0]) await setCellValue(book, 'Dashboard', dRef, S.setup.categories[0].name); }
   // Make Excel recalculate everything when the file opens; drop the stale calc chain.
@@ -791,10 +840,12 @@ async function doExport() {
   try { exportBlob = await buildWorkbook(); } catch (e) { toast('Couldn’t build the Excel file: ' + e.message, 5000); return; }
   const name = exportName();
   if (IS_NATIVE) {
+    let f = null, why = '';
+    try { f = await saveToFolder(name, bytesToB64(new Uint8Array(await exportBlob.arrayBuffer()))); markExported(); } catch (e) { why = errText(e); }
     openSheet(`<div class="phead"><h3>Your Excel file is ready</h3><button class="x" data-close>×</button></div>
-      <p class="note" style="margin-top:0">It has everything in your ${esc(CUR.name)} tracker. Keep it somewhere safe as your backup.</p>
-      <button class="btn" data-act="nativeShare">Save to OneDrive or send</button>
-      <ol class="steps"><li>In the menu that opens, pick <b>OneDrive</b> (or Google Drive, WhatsApp, Email…).</li><li>Choose your tracker’s folder and save. If it asks, choose <b>Replace</b>.</li></ol>`);
+      ${f ? savedNote(f) : `<p class="err" style="margin-top:0">Couldn’t save it in ${FOLDER_SHOWN} (${esc(why)}). You can still send it below.</p>`}
+      <button class="btn ${f ? 'sec' : ''}" data-act="nativeShare">Send to OneDrive, Google Drive or WhatsApp</button>
+      <ol class="steps"><li>In the menu that opens, pick <b>OneDrive</b> (or Google Drive, WhatsApp, Email…).</li><li>Choose your tracker’s folder and save. If it asks, choose <b>Replace</b>.</li></ol>`, { xl: f });
     return;
   }
   // Chrome on Android refuses to share .xlsx files, so Android goes straight to download.
@@ -824,7 +875,7 @@ function downloadFile() {
 /* ---------- sheet (bottom panel) ---------- */
 let sheetCtx = null;
 function openSheet(html, ctx = null) { $('#panel').innerHTML = '<div class="grab"></div>' + html; sheetCtx = ctx; $('#overlay').classList.add('open'); }
-function closeSheet() { $('#overlay').classList.remove('open'); sheetCtx = null; }
+function closeSheet() { $('#overlay').classList.remove('open'); sheetCtx = null; if (typeof crop !== 'undefined') crop = null; }
 
 /* ---------- views ---------- */
 const ICON = {
@@ -838,7 +889,7 @@ const statusColor = { ok: 'var(--good)', near: 'var(--warn)', over: 'var(--crit)
 function render() {
   const v = $('#view');
   if (!UI.ready) return;
-  renderHeader();
+  renderHeader(); renderHeadBtns();
   if (!UI.locked && setupNeeded()) { $('#curbar').hidden = true; $('#tabs').hidden = true; $('#fab').hidden = true; $('#sync').style.visibility = 'hidden'; v.innerHTML = viewSetup(); return; }
   $('#sync').style.visibility = '';
   renderCurbar();
@@ -869,10 +920,11 @@ function viewWelcome() {
 }
 
 function cycleSelect() {
-  const sd = salaryDates(), r = cycleRange();
-  if (!sd.length) return `<div class="cycle"><label>Period</label><span class="pill" style="font-weight:600;font-size:14px">${fmtShort(r.start)} → now</span></div>`;
-  const opts = sd.map((d, i) => { const nx = sd[i - 1]; return `<option value="${d}" ${d === r.start ? 'selected' : ''}>${fmtCyc(d)} → ${nx ? fmtCyc(addDays(nx, -1)) : 'now'}</option>`; }).join('');
-  return `<div class="cycle"><label for="cyc">Pay cycle</label><select id="cyc" class="pill" data-change="cycle">${opts}</select></div>`;
+  const sd = salaryDates(), r = cycleRange(), t = todayISO();
+  const cust = UI.custom ? `<option value="__cur" selected>${fmtCyc(r.start)} → ${fmtCyc(r.end)}</option>` : '';
+  const opts = sd.length ? sd.map((d, i) => { const nx = sd[i - 1]; return `<option value="${d}" ${!UI.custom && d === r.start ? 'selected' : ''}>${fmtCyc(d)} → ${nx ? fmtCyc(addDays(nx, -1)) : 'now'}</option>`; }).join('')
+    : `<option value="" ${UI.custom ? '' : 'selected'}>${fmtShort(t.slice(0, 8) + '01')} → now</option>`;
+  return `<div class="cycle"><label for="cyc">${UI.custom ? 'Dates' : sd.length ? 'Pay cycle' : 'Period'}</label><select id="cyc" class="pill" data-change="cycle">${cust}${opts}<option value="__custom">Custom dates…</option></select></div>`;
 }
 
 function viewHome() {
@@ -917,7 +969,7 @@ function viewHome() {
   <section class="card hero">
     <div class="lbl">Left to spend</div>
     <div class="big num">${naira(c.left)}</div>
-    <div class="sub">Income − spent − saved${r.nosalary ? ' · no salary logged yet, showing this month' : ''}</div>
+    <div class="sub">Income − spent − saved${r.custom ? ' · ' + fmtShort(r.start) + ' to ' + fmtShort(r.end) : r.nosalary ? ' · no salary logged yet, showing this month' : ''}</div>
     ${perDay}
     <div class="kpis">
       <div class="kpi"><div class="k">Income</div><div class="v num">${naira(c.income)}</div></div>
@@ -927,7 +979,8 @@ function viewHome() {
     </div>
   </section>
   ${S.setup.accounts.length ? billsCard(r) : ''}
-  ${r.nosalary ? '' : compareCard(r)}
+  ${S.setup.accounts.length ? forecastCard() : ''}
+  ${r.nosalary || r.custom ? '' : compareCard(r)}
   </div><div class="col">
   <section class="card">
     <div class="card-head"><h2>Budget vs actual</h2><small class="num">${naira(c.spent - Math.max(0, c.uncategorised))} of ${naira(c.budgetTotal)}</small></div>
@@ -992,11 +1045,11 @@ function toLine(kind, e) { const { id, date, feeFor, ...rest } = e; return { kin
 /* ---------- bank charges ---------- */
 const CHARGES = 'Bank Charges';
 function ensureChargesCat() { if (!S.setup.categories.some(c => c.name === CHARGES)) { S.setup.categories.push({ name: CHARGES, budget: CUR.code === 'NGN' ? 3000 : 0 }); bumpPending(); } }
-// Typical cost of sending a transfer: CBN fee (free < ₦5k, ₦10 up to ₦50k, ₦50 above) + ₦50 stamp duty from ₦10k.
-function suggestFee(a) { if (!(a >= 5000)) return null; return (a <= 50000 ? 10 : 50) + (a >= 10000 ? 50 : 0); }
+// NIP transfer charge for this amount, from your three charge buttons (₦10.75 / ₦26.88 / ₦53.75 by default).
+function suggestFee(a) { if (CUR.code !== 'NGN' || !(a > 0)) return null; const c = rawChips(), v = a <= 5000 ? c[0] : a <= 50000 ? c[1] : c[2]; return v > 0 ? v : null; }
 function feeHint(a) {
-  const s = suggestFee(a); if (s === null) return a > 0 ? 'Transfers under ₦5,000 are usually free.' : '';
-  return `Usual for ${naira(a)}: <b>${naira(s)}</b>${a >= 10000 ? ' (bank fee + ₦50 stamp duty)' : ''}. Often free within the same bank or on fintech apps. <button type="button" class="linkbtn" style="display:inline;padding:0" data-fee="${s}">Use ${naira(s)}</button>`;
+  const s = suggestFee(a); if (s === null) return '';
+  return `Usual transfer charge for ${nairaRaw(a)}: <b>${nairaRaw(s)}</b>. Often free within the same bank or on fintech apps. <button type="button" class="linkbtn" style="display:inline;padding:0" data-fee="${s}">Use ${nairaRaw(s)}</button>`;
 }
 const TRANSFER_LIKE = ['Bank Transfer', 'USSD'];
 function hintFor(st, a) {
@@ -1119,43 +1172,45 @@ function runCheck(name) {
 }
 function defaultTemplate() {
   const d = salaryDates()[0]; if (!d) return [];
-  const lines = []; for (const k of KINDS) allOf(k).filter(e => e.date === d).forEach(e => lines.push(toLine(k, e)));
+  const lines = []; for (const k of KINDS) allOf(k).filter(e => e.date === d && !e.feeFor).forEach(e => { const l = toLine(k, e), ch = k !== 'income' && linkedCharge(e.id); if (ch) l.fee = ch.amount; lines.push(l); });
   return lines;
 }
 function lineTitle(l) { return l.desc || (l.kind === 'income' ? l.source : l.kind === 'expenses' ? l.category : 'Transfer'); }
 function lineSub(l) { return l.kind === 'income' ? [l.source, l.account].filter(Boolean).join(' · ') : l.kind === 'expenses' ? [l.category, l.account].filter(Boolean).join(' · ') : l.from + ' → ' + l.to; }
+/* ---------- payday list (2.1) ---------- */
+// The saved list lives in S.prefs.template, in the order you do things on payday. Each item has a pid.
+function tpl() { const t = (S.prefs.template ||= []); t.forEach(l => { if (!l.pid) l.pid = newId(); }); return t; }
+const kindIcon = k => k === 'income' ? '<span class="kico inc">+</span>' : k === 'expenses' ? '<span class="kico">−</span>' : '<span class="kico">⇄</span>';
+function lineFeeTxt(l) { return l.fee > 0 ? ' · +' + naira(l.fee) + ' charge' : ''; }
 function openPayday() {
-  const saved = Array.isArray(S.prefs.template) && S.prefs.template.length > 0;
-  const lines = (saved ? S.prefs.template : defaultTemplate()).map(l => ({ ...l, on: true, uid: newId() }));
-  sheetCtx = { payday: true, lines, date: todayISO(), remember: true, derivedFrom: saved ? null : salaryDates()[0] };
+  const saved = tpl().length > 0;
+  const lines = (saved ? tpl() : defaultTemplate()).map(l => ({ ...l, pid: l.pid || newId(), on: true, uid: newId() }));
+  sheetCtx = { payday: true, lines, date: todayISO(), remember: false, derivedFrom: saved ? null : salaryDates()[0] };
   drawPayday(); $('#overlay').classList.add('open');
 }
 function paydayTotals() {
   const on = sheetCtx.lines.filter(l => l.on && l.amount > 0);
   const t = k => sum(on.filter(l => l.kind === k));
-  return { n: on.length, text: [t('income') ? naira(t('income')) + ' in' : '', t('expenses') ? naira(t('expenses')) + ' spent' : '', t('transfers') ? naira(t('transfers')) + ' moved' : ''].filter(Boolean).join(' · ') };
+  const fees = on.reduce((s, l) => s + (+l.fee || 0), 0);
+  return { n: on.length, text: [t('income') ? naira(t('income')) + ' in' : '', t('expenses') ? naira(t('expenses')) + ' spent' : '', t('transfers') ? naira(t('transfers')) + ' moved' : '', fees ? naira(fees) + ' charges' : ''].filter(Boolean).join(' · ') };
 }
 function drawPayday() {
   const st = sheetCtx, tot = paydayTotals();
-  const grp = (k, label) => {
-    const ls = st.lines.filter(l => l.kind === k); if (!ls.length) return '';
-    return `<div class="day">${label}</div><div class="list">${ls.map(l => `<div class="item pl ${l.on ? '' : 'off'}">
+  const rows = st.lines.map(l => `<div class="item pl ${l.on ? '' : 'off'}">
       <input type="checkbox" data-pl="on" data-uid="${l.uid}" ${l.on ? 'checked' : ''} aria-label="Include this payday">
-      <button class="mid ebtn" data-act="plToggle" data-uid="${l.uid}" style="font-weight:inherit"><div class="t1">${esc(retitle(lineTitle(l), st.date))}</div><div class="t2">${esc(lineSub(l))} · <span style="color:var(--accent);font-weight:700">${l.open ? 'done' : 'edit'}</span></div></button>
-      <input class="in sm num" inputmode="decimal" data-pl="amount" data-uid="${l.uid}" value="${NF.format(l.amount)}" aria-label="Amount">
-      <button class="rm" data-act="plRemove" data-uid="${l.uid}" aria-label="Remove from list">×</button></div>
-      ${l.open ? plEditor(l) : ''}`).join('')}</div>`;
-  };
+      <button class="mid ebtn" data-act="plToggle" data-uid="${l.uid}" style="font-weight:inherit"><div class="t1">${kindIcon(l.kind)} ${esc(retitle(lineTitle(l), st.date))}</div><div class="t2">${esc(lineSub(l))}${lineFeeTxt(l)} · <span style="color:var(--accent);font-weight:700">${l.open ? 'done' : 'edit'}</span></div></button>
+      <input class="in sm num" inputmode="decimal" data-pl="amount" data-uid="${l.uid}" value="${NF.format(l.amount)}" aria-label="Amount"></div>
+      ${l.open ? plEditor(l) : ''}`).join('');
   $('#panel').innerHTML = `<div class="grab"></div>
     <div class="phead"><h3>Log payday</h3><button class="x" data-close>×</button></div>
-    ${st.lines.length ? `<p class="note" style="margin-top:0">${st.derivedFrom ? `Built from your ${fmtDM(st.derivedFrom)} entries. Tap × on anything that isn’t monthly.` : 'Your payday list.'} Untick a line to skip it just this time. Month names in descriptions update automatically.</p>` : `<p class="note" style="margin-top:0">Your payday list is empty. Open any entry in Activity and tap <b>Add to payday list</b>.</p>`}
+    <p class="note" style="margin-top:0">${st.derivedFrom ? `Built from your ${fmtDM(st.derivedFrom)} entries, because your payday list is empty. You can set the list up in Settings.` : 'Amounts come from your payday list in Settings. Change anything here for this payday only.'} Untick a line to skip it. Month names in descriptions update automatically.</p>
     <div class="fld" style="margin-top:12px"><label for="pd-date">Payday date</label><input type="date" class="in" id="pd-date" value="${st.date}"></div>
-    ${grp('income', 'Income')}${grp('expenses', 'Spending')}${grp('transfers', 'Transfers')}
-    <label class="check"><input type="checkbox" id="pd-remember" ${st.remember ? 'checked' : ''}> Remember this list and these amounts for next payday</label>
+    ${st.lines.length ? `<div class="list">${rows}</div>` : '<p class="note">Your payday list is empty. Add your salary, allowances, transfers and bills below.</p>'}
+    <button class="btn sec" style="margin-top:12px" data-act="pdAddItem">+ Add item</button>
+    <label class="check"><input type="checkbox" id="pd-remember" ${st.remember ? 'checked' : ''}> Also update my payday list with these changes</label>
     <div class="err" id="pd-err"></div>
     <button class="btn" data-act="logPayday" ${tot.n ? '' : 'disabled'}>Log ${tot.n} entr${tot.n === 1 ? 'y' : 'ies'}</button>
-    <p class="note" id="pd-total" style="text-align:center">${tot.text}</p>
-    ${st.lines.length ? '<button class="linkbtn" data-act="savePaydayOnly">Save list without logging</button>' : ''}`;
+    <p class="note" id="pd-total" style="text-align:center">${tot.text}</p>`;
 }
 function plEditor(l) {
   const sel = (field, opts, label) => `<select class="in" data-pl="${field}" data-uid="${l.uid}" aria-label="${label}">${opts.map(o => `<option ${o === l[field] ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
@@ -1165,6 +1220,7 @@ function plEditor(l) {
     ${l.kind === 'expenses' ? sel('category', S.setup.categories.map(c => c.name), 'Category') + sel('account', accts, 'Paid from') : ''}
     ${l.kind === 'income' ? sel('source', S.setup.sources, 'Source') + sel('account', accts, 'Received into') : ''}
     ${l.kind === 'transfers' ? sel('from', accts, 'From') + sel('to', accts, 'To') : ''}
+    ${l.kind !== 'income' ? `<input class="in" data-pl="fee" data-uid="${l.uid}" inputmode="decimal" data-money value="${l.fee ? NF.format(l.fee) : ''}" placeholder="Bank charge (optional)" aria-label="Bank charge">` : ''}
   </div>`;
 }
 function syncPaydayHead() { const d = $('#pd-date'), r = $('#pd-remember'); if (d && d.value) sheetCtx.date = d.value; if (r) sheetCtx.remember = r.checked; }
@@ -1173,17 +1229,122 @@ function refreshPaydayTotals() {
   if (b) { b.textContent = 'Log ' + tot.n + ' entr' + (tot.n === 1 ? 'y' : 'ies'); b.disabled = !tot.n; }
   const t = $('#pd-total'); if (t) t.textContent = tot.text;
 }
-function savePaydayTemplate() { S.prefs.template = sheetCtx.lines.map(({ on, uid, open, ...l }) => l); saveCache(); }
+const cleanLine = ({ on, uid, open, ...l }) => l;
 function logPayday() {
   const st = sheetCtx, date = $('#pd-date').value;
   if (!date) { $('#pd-err').textContent = 'Pick the payday date.'; return; }
   const on = st.lines.filter(l => l.on && l.amount > 0 && !(l.kind === 'transfers' && l.from === l.to));
   if (!on.length) return;
-  for (const l of on) { const { kind, on: _o, uid, open, ...f } = l; addEntry(kind, { ...f, desc: retitle(f.desc, date), amount: +l.amount, id: newId(), date }); }
-  if ($('#pd-remember').checked) savePaydayTemplate();
+  for (const l of on) {
+    const { kind, on: _o, uid, open, pid, fee, ...f } = l;
+    const e = { ...f, desc: retitle(f.desc, date), amount: +l.amount, id: newId(), date };
+    addEntry(kind, e); if (kind !== 'income' && fee > 0) syncFee(kind, e, +fee);
+  }
+  if ($('#pd-remember').checked) { S.prefs.template = st.lines.map(cleanLine); }
   if (S.prefs.nextPayday && S.prefs.nextPayday <= date) delete S.prefs.nextPayday; // that payday has arrived
-  saveCache(); UI.cycle = null; UI.tab = 'home'; closeSheet(); render(); window.scrollTo(0, 0);
+  saveCache(); UI.cycle = null; UI.custom = null; UI.tab = 'home'; closeSheet(); render(); window.scrollTo(0, 0);
   toast('Logged ' + on.length + ' payday entries');
+}
+// Settings card
+function paydaySettingsCard() {
+  const list = tpl(), derived = !list.length ? defaultTemplate() : [];
+  return `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Payday list</h2><small>${list.length ? list.length + ' item' + (list.length > 1 ? 's' : '') : 'empty'}</small></div>
+    <p class="note" style="margin:0 0 10px">What you log every payday: salary, allowances, transfers and bills. Nothing is logged until you tap <b>Log payday</b> on Home. Drag ⋮⋮ to reorder; tap an item to edit it.</p>
+    ${list.length ? `<div class="list" id="tplList">${list.map(l => `<div class="item tplrow" data-pid="${l.pid}"><span class="drag" data-drag="${l.pid}" aria-label="Drag to reorder" role="button" tabindex="0">⋮⋮</span>
+      <button class="mid ebtn" data-act="tplEdit" data-pid="${l.pid}" style="font-weight:inherit"><div class="t1">${kindIcon(l.kind)} ${esc(lineTitle(l))}</div><div class="t2">${esc(lineSub(l))}${lineFeeTxt(l)}</div></button>
+      <span class="amt num">${naira(l.amount)}</span></div>`).join('')}</div>`
+      : derived.length ? `<p class="note">Want to start from your ${fmtDM(salaryDates()[0])} payday entries? You can remove anything that isn’t monthly afterwards.</p><button class="btn sec" data-act="tplAdopt">Use my ${fmtDM(salaryDates()[0])} entries</button>` : ''}
+    <button class="btn ${list.length ? 'sec' : ''}" style="margin-top:10px" data-act="tplAdd">+ Add item</button></section>`;
+}
+// Add / edit one payday item (from Settings or from the pop-up)
+function openTplItem(item, from) {
+  const back = from === 'payday' ? { ...sheetCtx } : null;
+  const v = item ? { ...item } : { kind: 'income', desc: '', amount: '', source: S.setup.sources[0] || '', account: (S.setup.accounts[0] || {}).name || '', category: (S.setup.categories[0] || {}).name || '', method: '', from: (S.setup.accounts[0] || {}).name || '', to: (S.setup.accounts[1] || S.setup.accounts[0] || {}).name || '', fee: 0 };
+  sheetCtx = { tplItem: true, v, pid: item && item.pid ? item.pid : null, from, back, confirmDel: false };
+  drawTplItem(); $('#overlay').classList.add('open');
+}
+function drawTplItem() {
+  const st = sheetCtx, v = st.v, k = v.kind, accts = S.setup.accounts.map(a => a.name);
+  const sel = (id, opts, val) => `<select class="in" id="${id}">${opts.map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+  const seg = (key, label) => `<button type="button" class="${k === key ? 'on' : ''}" data-act="tplKind" data-v="${key}">${label}</button>`;
+  $('#panel').innerHTML = `<div class="grab"></div><div class="phead"><h3>${st.pid ? 'Edit payday item' : 'New payday item'}</h3><button class="x" data-close>×</button></div>
+    <div class="seg">${seg('income', 'Income')}${seg('expenses', 'Spending')}${seg('transfers', 'Transfer')}</div>
+    <div class="fld"><label for="ti-desc">Description</label><input class="in" id="ti-desc" maxlength="60" value="${esc(v.desc || '')}" placeholder="${k === 'income' ? 'e.g. November salary' : k === 'expenses' ? 'e.g. Mum’s upkeep' : 'e.g. Monthly savings'}"></div>
+    <div class="fld"><label for="ti-amt">Amount</label><input class="in" id="ti-amt" inputmode="decimal" data-money value="${v.amount === '' ? '' : NF.format(v.amount)}"></div>
+    ${k === 'income' ? `<div class="fld"><label for="ti-src">Source</label>${sel('ti-src', S.setup.sources, v.source)}</div><div class="fld"><label for="ti-acc">Received into</label>${sel('ti-acc', accts, v.account)}</div>` : ''}
+    ${k === 'expenses' ? `<div class="fld"><label for="ti-cat">Category</label>${sel('ti-cat', S.setup.categories.map(c => c.name), v.category)}</div><div class="fld"><label for="ti-acc">Paid from</label>${sel('ti-acc', accts, v.account)}</div><div class="fld"><label for="ti-met">Payment method</label>${sel('ti-met', ['', ...S.setup.methods], v.method)}</div>` : ''}
+    ${k === 'transfers' ? `<div class="fld"><label for="ti-from">From</label>${sel('ti-from', accts, v.from)}</div><div class="fld"><label for="ti-to">To</label>${sel('ti-to', accts, v.to)}</div>` : ''}
+    ${k !== 'income' ? `<div class="fld"><label>Bank charge</label><div class="chips">${feeChipsHtml(v.fee, 'tifee')}</div><input class="in" id="ti-fee" inputmode="decimal" data-money style="margin-top:8px" value="${v.fee ? NF.format(v.fee) : ''}" placeholder="Or type the charge"></div>` : ''}
+    <div class="err" id="ti-err"></div><button class="btn" data-act="tplSave">Save to payday list</button>
+    ${st.pid ? '<button class="btn danger" data-act="tplDelete">Delete from payday list</button>' : ''}`;
+}
+function readTplForm() {
+  const v = sheetCtx.v; v.desc = $('#ti-desc').value.trim(); const a = readAmount($('#ti-amt').value); v.amount = isNaN(a) ? '' : a;
+  const g = id => { const e = $('#' + id); return e ? e.value : undefined; };
+  if (v.kind === 'income') { v.source = g('ti-src'); v.account = g('ti-acc'); }
+  if (v.kind === 'expenses') { v.category = g('ti-cat'); v.account = g('ti-acc'); v.method = g('ti-met'); }
+  if (v.kind === 'transfers') { v.from = g('ti-from'); v.to = g('ti-to'); }
+  const f = $('#ti-fee'); if (f) { const n = readAmount(f.value); v.fee = n > 0 ? n : 0; }
+}
+function saveTplItem() {
+  readTplForm(); const st = sheetCtx, v = st.v, err = m => { $('#ti-err').textContent = m; };
+  if (!(v.amount > 0)) return err('Enter an amount above zero.');
+  if (v.kind === 'transfers' && v.from === v.to) return err('From and To must be different accounts.');
+  const keys = { income: ['source', 'account'], expenses: ['category', 'account', 'method'], transfers: ['from', 'to'] }[v.kind];
+  const item = { pid: st.pid || newId(), kind: v.kind, desc: v.desc, amount: v.amount, fee: v.kind === 'income' ? 0 : (v.fee || 0) };
+  if (v.goalId) item.goalId = v.goalId;
+  keys.forEach(k => { item[k] = v[k] || ''; });
+  const list = tpl(), i = list.findIndex(x => x.pid === item.pid);
+  if (i >= 0) list[i] = item; else list.push(item);
+  saveCache();
+  if (st.from === 'payday' && st.back) { sheetCtx = st.back; const j = sheetCtx.lines.findIndex(x => x.pid === item.pid); if (j >= 0) sheetCtx.lines[j] = { ...sheetCtx.lines[j], ...item }; else sheetCtx.lines.push({ ...item, on: true, uid: newId() }); drawPayday(); toast('Added to your payday list'); }
+  else { closeSheet(); render(); toast(i >= 0 ? 'Payday item updated' : 'Added to your payday list'); }
+}
+function deleteTplItem() {
+  if (!sheetCtx.confirmDel) { sheetCtx.confirmDel = true; const b = $('[data-act="tplDelete"]'); b.textContent = 'Tap again to delete'; return; }
+  S.prefs.template = tpl().filter(x => x.pid !== sheetCtx.pid); saveCache(); closeSheet(); render(); toast('Removed from your payday list');
+}
+// Drag to reorder (pointer events on the ⋮⋮ handle)
+let dragSt = null;
+document.addEventListener('pointerdown', ev => {
+  const h = ev.target.closest && ev.target.closest('[data-drag]'); if (!h) return;
+  const row = h.closest('.tplrow'), list = row && row.parentNode; if (!row) return;
+  ev.preventDefault(); h.setPointerCapture && h.setPointerCapture(ev.pointerId);
+  dragSt = { row, list, startY: ev.clientY, h }; row.classList.add('dragging');
+});
+document.addEventListener('pointermove', ev => {
+  if (!dragSt) return; ev.preventDefault();
+  const { row, list } = dragSt; const dy = ev.clientY - dragSt.startY; row.style.transform = `translateY(${dy}px)`;
+  const others = [...list.children].filter(x => x !== row);
+  for (const o of others) {
+    const r = o.getBoundingClientRect(), mid = r.top + r.height / 2;
+    if (ev.clientY < mid && o.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING) { const before = row.getBoundingClientRect().top; list.insertBefore(row, o); dragSt.startY += row.getBoundingClientRect().top - before; row.style.transform = `translateY(${ev.clientY - dragSt.startY}px)`; break; }
+    if (ev.clientY > mid && o.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_PRECEDING) { const nxt = o.nextSibling; const before = row.getBoundingClientRect().top; list.insertBefore(row, nxt); dragSt.startY += row.getBoundingClientRect().top - before; row.style.transform = `translateY(${ev.clientY - dragSt.startY}px)`; }
+  }
+}, { passive: false });
+document.addEventListener('pointerup', () => {
+  if (!dragSt) return; const { row, list } = dragSt; row.style.transform = ''; row.classList.remove('dragging'); dragSt = null;
+  const order = [...list.querySelectorAll('.tplrow')].map(x => x.dataset.pid), list0 = tpl();
+  S.prefs.template = order.map(pid => list0.find(l => l.pid === pid)).filter(Boolean); saveCache(); render();
+});
+
+/* ---------- bank charge chips (2.1: NIP charges, editable in Settings) ---------- */
+const DEF_CHIPS = { NGN: [10.75, 26.88, 53.75] };
+const rawChips = () => Array.isArray(S.prefs.feeChips) ? S.prefs.feeChips : (DEF_CHIPS[CUR.code] || []);
+function feeChips() { return rawChips().filter(x => x > 0); }
+const BANDS = ['Up to ₦5,000', '₦5,001 – ₦50,000', 'Above ₦50,000'];
+function feeChipsHtml(fee, attr) {
+  const opts = [0, ...feeChips()], f = +fee || 0;
+  return opts.map(o => `<button type="button" class="chip ${f === o ? 'on' : ''}" data-${attr}="${o}">${o ? nairaRaw(o) : 'None'}</button>`).join('');
+}
+function feeSettingsCard() {
+  const c = Array.isArray(S.prefs.feeChips) ? S.prefs.feeChips : (DEF_CHIPS[CUR.code] || []), ng = CUR.code === 'NGN';
+  const row = i => `<div class="fld" style="margin:0"><label for="fc${i}">${ng ? BANDS[i] : 'Charge ' + (i + 1)}</label><input class="in" id="fc${i}" inputmode="decimal" data-money value="${c[i] ? NF.format(c[i]) : ''}" placeholder="${ng ? NF.format(DEF_CHIPS.NGN[i]) : 'Not set'}"></div>`;
+  return `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Bank charges</h2></div>
+    <p class="note" style="margin:0 0 10px">${ng ? 'The charge buttons shown when you log a transfer or card/USSD payment. They follow the NIP transfer bands, and the right one is suggested from the amount.' : 'Up to three charge buttons shown when you log a payment or transfer.'}</p>
+    <div style="display:grid;gap:10px">${row(0)}${row(1)}${row(2)}</div>
+    <button class="btn sec" style="margin-top:12px" data-act="saveChips">Save charges</button>
+    ${ng ? '<button class="linkbtn" data-act="resetChips">Reset to the standard NIP charges</button>' : ''}</section>`;
 }
 
 
@@ -1192,9 +1353,11 @@ const IS_NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatfor
 const NP = {};
 if (IS_NATIVE) {
   const reg = window.Capacitor.registerPlugin;
-  Object.assign(NP, { App: reg('App'), Fs: reg('Filesystem'), Share: reg('Share'), Notif: reg('LocalNotifications'), Bio: reg('NativeBiometric'), FT: reg('FileTransfer'), Open: reg('FileOpener') });
+  Object.assign(NP, { App: reg('App'), Fs: reg('Filesystem'), Share: reg('Share'), Notif: reg('LocalNotifications'), Bio: reg('NativeBiometric'), FT: reg('FileTransfer'), Open: reg('FileOpener'), Uninstall: reg('AppUninstall') });
   NP.App.addListener('backButton', () => {
     if (UI.forceUpdate) NP.App.exitApp();
+    else if (!$('#photoView').hidden) closePhoto();
+    else if (crop) cropFinish(false);
     else if ($('#overlay').classList.contains('open')) closeSheet();
     else if (UI.locked) NP.App.exitApp();
     else if (UI.tab !== 'home') { UI.tab = 'home'; render(); window.scrollTo(0, 0); }
@@ -1205,15 +1368,16 @@ if (IS_NATIVE) {
     else {
       if (getPin() && !UI.locked && UI.hiddenAt && Date.now() - UI.hiddenAt > 60000) lockApp();
       if (!UI.lastUpdCheck || Date.now() - UI.lastUpdCheck > 10 * 60000) checkUpdate();
+      setTimeout(autoFolderBackup, 3000);
     }
   });
 }
 async function nativeShareFile() {
   const name = exportName();
   try {
-    const b64 = bytesToB64(new Uint8Array(await exportBlob.arrayBuffer()));
-    const w = await NP.Fs.writeFile({ path: name, data: b64, directory: 'CACHE' });
-    await NP.Share.share({ title: name, files: [w.uri], dialogTitle: 'Save your Excel file' });
+    let uri = sheetCtx && sheetCtx.xl && sheetCtx.xl.uri;
+    if (!uri) { const b64 = bytesToB64(new Uint8Array(await exportBlob.arrayBuffer())); uri = (await NP.Fs.writeFile({ path: name, data: b64, directory: 'CACHE' })).uri; }
+    await NP.Share.share({ title: name, files: [uri], dialogTitle: 'Save your Excel file' });
     markExported(); closeSheet(); toast('Saved. Your Excel is up to date.');
   } catch (e) { if (!/cancel/i.test(String(e && (e.message || e)))) toast('Couldn’t share the file: ' + (e && e.message || 'error'), 4000); }
 }
@@ -1287,30 +1451,12 @@ function drawUpdate() {
   else if (u.stage === 'installing') body = `<p class="note" style="text-align:center;margin-top:18px">Android will now ask you to install it. Tap <b>Update</b>.<br>The first time, Android asks you to allow Money Tracker to install updates: turn on <b>Allow from this source</b>, go back, then tap <b>Update</b>.</p>
     <button class="btn" data-act="updInstall" style="margin-top:14px">Open the installer again</button>`;
   else body = `${u.error ? `<p class="err" style="text-align:center;margin:14px 0 0">${esc(u.error)}</p>` : ''}
-    <button class="btn" data-act="updDownload" style="margin-top:20px">${u.error ? 'Try again' : 'Update now'}${mb}</button>
-    ${u.error ? `<a class="linkbtn" href="${esc(u.url)}" style="text-decoration:none;text-align:center">Download in the browser instead</a>` : ''}`;
+    ${u.detail ? `<p class="note" style="text-align:center;margin:6px 0 0;font-size:11.5px;word-break:break-word">Details: ${esc(u.detail)}</p>` : ''}
+    <button class="btn" data-act="updDownload" style="margin-top:20px">${u.error ? 'Try again' : 'Update now'}${mb}</button>`;
   el.innerHTML = `<div class="lockbox">${logoSvg(84, true)}<h2>Update required</h2>
     <p class="note" style="text-align:center;margin:6px 0 0">Version ${esc(u.version)} is ready. Update to keep using Money Tracker. Your entries stay safe.</p>
     ${u.notes ? `<p class="note" style="text-align:center;margin:8px 0 0"><b>New:</b> ${esc(u.notes)}</p>` : ''}${body}${creditHtml()}</div>`;
   el.hidden = false;
-}
-async function downloadUpdate() {
-  const u = UI.forceUpdate; u.stage = 'downloading'; u.pct = 0; u.error = ''; drawUpdate();
-  let sub = null;
-  try {
-    const name = 'MoneyTracker-update.apk';
-    try { await NP.Fs.deleteFile({ path: name, directory: 'CACHE' }); } catch (e) {}
-    const { uri } = await NP.Fs.getUri({ path: name, directory: 'CACHE' });
-    sub = await NP.FT.addListener('progress', p => { if (p && p.type === 'download') { const t = p.contentLength || u.size; if (t) { u.pct = Math.min(1, p.bytes / t); drawUpdate(); } } });
-    await NP.FT.downloadFile({ url: u.url, path: uri, progress: true });
-    u.file = uri; u.stage = 'installing'; drawUpdate();
-    await openInstaller();
-  } catch (e) { u.stage = 'ready'; u.error = 'The download didn’t finish. Check your internet connection and try again.'; drawUpdate(); }
-  finally { try { if (sub && sub.remove) sub.remove(); } catch (e) {} }
-}
-async function openInstaller() {
-  try { await NP.Open.openFile({ path: UI.forceUpdate.file, mimeType: 'application/vnd.android.package-archive' }); }
-  catch (e) { UI.forceUpdate.stage = 'ready'; UI.forceUpdate.error = 'Android couldn’t open the installer. Try again, or download it in the browser.'; drawUpdate(); }
 }
 // Send the installer itself. The file for this exact version is fetched from GitHub Releases once, then kept on the phone.
 async function shareApk() {
@@ -1331,11 +1477,13 @@ async function shareApk() {
       sub = await NP.FT.addListener('progress', p => { if (p && p.type === 'download' && p.contentLength) prog(Math.min(1, p.bytes / p.contentLength)); });
       const urls = [repo ? 'https://github.com/' + repo + '/releases/download/v' + APP_VER + '/MoneyTracker.apk' : null, L.apkUrl].filter(Boolean);
       let ok = false;
-      for (const url of urls) { try { await NP.FT.downloadFile({ url, path: u, progress: true }); ok = true; break; } catch (e) {} }
-      if (!ok) throw new Error('download');
+      let last = null;
+      for (const url of urls) { try { await NP.FT.downloadFile({ url, path: u, progress: true }); ok = true; break; } catch (e) { last = e; } }
+      if (!ok) for (const url of urls) { try { await NP.Fs.downloadFile({ url, path, directory: 'CACHE' }); ok = true; break; } catch (e) { last = e; } }
+      if (!ok) throw last || new Error('download failed');
       uri = u;
     } catch (e) {
-      closeSheet(); toast('Couldn’t get the app file. Check your internet, or share a download link instead.', 5000); return;
+      closeSheet(); toast('Couldn’t get the app file. Check your internet and try again. (' + errText(e) + ')', 6000); return;
     } finally { try { if (sub && sub.remove) sub.remove(); } catch (e) {} }
     closeSheet();
   }
@@ -1365,7 +1513,7 @@ function logoSvg(size, label) {
     `<g class="wal"><rect x="21" y="41" width="58" height="40" rx="10" fill="#03291D" fill-opacity="0.28"/><rect x="20" y="37" width="60" height="42" rx="10" fill="#fff"/>` +
     `<path d="M26 37 L58 27 Q62 26 63 30 L65 37 Z" fill="#7FE0B4"/><rect x="58" y="50" width="24" height="16" rx="7" fill="#0B6E4F"/><circle cx="67" cy="58" r="3.2" fill="#fff"/></g></svg>`;
 }
-const creditHtml = () => `<div class="credit">${logoSvg(22)}<span>Money Tracker · built by Ehis<small>Version ${APP_VER}</small></span></div>`;
+const creditHtml = () => `<div class="credit">${logoSvg(22)}<span>Money Tracker · built by Ehis<small>Version ${APP_LABEL}</small></span></div>`;
 // Opening animation: once per launch, about 1.5 s, tap to skip.
 function playIntro() {
   const el = $('#intro'); if (!el) return;
@@ -1458,8 +1606,8 @@ function openProfile() {
 function drawProfile(name) {
   const st = sheetCtx;
   $('#panel').innerHTML = `<div class="grab"></div><div class="phead"><h3>Your profile</h3><button class="x" data-close>×</button></div>
-    <button class="avapick" data-act="profPhoto" aria-label="Change photo">${avatarHtml({ name, photo: st.photo }, 'lg')}<span class="cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span></button>
-    ${st.photo ? '<button class="linkbtn" data-act="profPhotoRemove">Remove photo</button>' : ''}
+    <div class="avawrap"><button class="avapick" data-act="${st.photo ? 'profView' : 'profPhoto'}" aria-label="${st.photo ? 'See your photo' : 'Add a photo'}">${avatarHtml({ name, photo: st.photo }, 'lg')}</button><button class="cam" data-act="profPhoto" aria-label="Change photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button></div>
+    ${st.photo ? '<div class="avalinks"><button class="linkbtn" data-act="profPhoto">Change photo</button><button class="linkbtn" data-act="profPhotoRemove">Remove photo</button></div>' : ''}
     <div class="fld" style="margin-top:14px"><label for="prname">Your name</label><input class="in" id="prname" maxlength="40" value="${esc(name)}"></div>
     <div class="err" id="pr-err"></div>
     <div class="fld" style="margin-top:6px"><label>Appearance</label>${themeSeg()}</div>
@@ -1692,22 +1840,33 @@ function restoreData(o) {
 }
 function openBackup() {
   try { autoSnapshot(); } catch (e) {}
-  const snaps = snapshots();
+  const snaps = snapshots(), last = lsGet('mt-autofile-last'), aerr = lsGet('mt-autofile-err');
   openSheet(`<div class="phead"><h3>Backup &amp; restore</h3><button class="x" data-close>×</button></div>
-    <p class="note" style="margin-top:0">A backup file holds everything: every currency, your payday list, bills, quick adds and lent &amp; borrowed. Excel only holds entries and lists. Keep it in Google Drive or OneDrive, and you can restore it on any phone.</p>
-    <button class="btn" data-act="backupFile">Back up everything to a file</button>
+    <p class="note" style="margin-top:0">A backup file holds everything: every currency, your payday list, bills, goals, quick adds and lent &amp; borrowed. ${IS_NATIVE ? 'It’s saved in <b>' + FOLDER_SHOWN + '</b> on this phone, which stays even if you uninstall the app.' : 'Keep it in Google Drive or OneDrive, and you can restore it on any phone.'}</p>
+    <button class="btn" data-act="backupFile">Back up everything now</button>
     <button class="btn sec" data-act="restoreFile">Restore from a backup file</button>
-    <div class="day">Automatic restore points</div>
-    <p class="note" style="margin:0 0 8px">The app saves one every day you use it and keeps the last 7, so you can undo a mistake or a bad Excel load.</p>
+    ${IS_NATIVE ? `<div class="day">Automatic backups</div>
+    <p class="note" style="margin:0 0 8px">Every day you open the app, a backup is saved in ${FOLDER_SHOWN}. The last 7 are kept. ${last ? 'Last one: <b>' + esc(fmtStamp(last.at)) + '</b>.' : ''}</p>
+    ${aerr ? `<p class="err" style="margin:0 0 8px">The last automatic backup didn’t save: ${esc(aerr)}</p>` : ''}
+    <p class="note" style="margin:0 0 8px">To restore one after reinstalling, tap <b>Restore from a backup file</b>, open <i>Documents</i> › <i>Money Tracker</i> and pick the newest.</p>` : ''}
+    <div class="day">Restore points in the app</div>
+    <p class="note" style="margin:0 0 8px">The app also keeps one a day inside itself (the last 7), so you can undo a mistake or a bad Excel load.</p>
     ${snaps.length ? `<div class="list">${snaps.map(d => `<div class="item"><div class="mid"><div class="t1">${fmtDay(d)}</div></div><button class="pbtn sm" data-act="restoreSnap" data-v="${d}">Restore</button></div>`).join('')}</div>` : '<p class="note">None yet.</p>'}`);
 }
 async function backupToFile() {
-  const name = 'Money_Tracker_backup_' + todayISO() + '.json', text = JSON.stringify(allData(true));
+  const name = 'Money_Tracker_backup_' + stamp() + '.json', text = JSON.stringify(allData(true));
   try {
-    if (IS_NATIVE) { const w = await NP.Fs.writeFile({ path: name, data: bytesToB64(new TextEncoder().encode(text)), directory: 'CACHE' }); await NP.Share.share({ title: name, files: [w.uri], dialogTitle: 'Save your backup' }); }
-    else { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+    if (IS_NATIVE) {
+      const f = await saveToFolder(name, bytesToB64(new TextEncoder().encode(text)));
+      lsSet('mt-lastfilebackup', new Date().toISOString());
+      openSheet(`<div class="phead"><h3>Backed up</h3><button class="x" data-close>×</button></div>${savedNote(f)}
+        <p class="note">For extra safety, also keep a copy off this phone, in case it’s lost or stolen.</p>
+        <button class="btn sec" data-act="shareBackup">Also send to Google Drive or OneDrive</button>`, { backupFile: f });
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
     lsSet('mt-lastfilebackup', new Date().toISOString()); toast('Backup saved'); closeSheet();
-  } catch (e) { if (!/cancel/i.test(String(e && (e.message || e)))) toast('Couldn’t save the backup: ' + (e && e.message || 'error')); }
+  } catch (e) { toast('Couldn’t save the backup: ' + errText(e), 5000); }
 }
 function confirmRestore(label, o) {
   sheetCtx = { restore: o };
@@ -1750,8 +1909,9 @@ function openReport(start) {
     ${D.biggest ? `<div class="kv"><span>Biggest payment</span><span class="num">${esc(D.biggest.desc || D.biggest.category)} · ${naira(D.biggest.amount)}</span></div>` : ''}
     <div class="kv"><span>Bank charges</span><span class="num">${naira(D.charges)}</span></div>
     <div class="kv"><span>Bills paid through the app</span><span>${D.billsPaid}</span></div>
-    ${cl.length > 1 ? `<div class="fld" style="margin-top:14px"><label for="rep-cyc">Another cycle</label><select class="in" id="rep-cyc">${cl.slice().reverse().map(x => `<option value="${x.start}" ${x.start === r.start ? 'selected' : ''}>${fmtShort(x.start)} → ${x.end ? fmtShort(x.end) : 'now'}</option>`).join('')}</select></div>` : ''}
-    <button class="btn" data-act="shareReport">Share as a picture</button>`, sheetCtx);
+    ${cl.length > 1 || r.custom ? `<div class="fld" style="margin-top:14px"><label for="rep-cyc">Another cycle</label><select class="in" id="rep-cyc">${r.custom ? `<option value="" selected>Custom: ${fmtShort(r.start)} → ${fmtShort(r.end)}</option>` : ''}${cl.slice().reverse().map(x => `<option value="${x.start}" ${x.start === r.start ? 'selected' : ''}>${fmtShort(x.start)} → ${x.end ? fmtShort(x.end) : 'now'}</option>`).join('')}</select></div>` : ''}
+    <button class="btn" data-act="shareReport">Share as a picture</button>
+    <button class="btn sec" data-act="reportPdf" data-a="${r.start}" data-b="${r.end || todayISO()}">PDF statement for these dates</button>`, sheetCtx);
 }
 function reportBanner() {
   const cl = cycleList(); if (cl.length < 2) return '';
@@ -1840,7 +2000,7 @@ async function bioUnlock() {
   finally { bioBusy = false; }
 }
 function unlockApp() { UI.locked = false; pinEntry = ''; $('#lock').hidden = true; render(); }
-function lockApp() { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); drawLock(); $('#lock').hidden = false; render(); if (lsGet(BIO_KEY)) setTimeout(bioUnlock, 350); }
+function lockApp(noBio) { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); closePhoto(); drawLock(); $('#lock').hidden = false; render(); if (lsGet(BIO_KEY) && !noBio) setTimeout(bioUnlock, 350); }
 function drawLock(err = '') {
   const box = $('#lockbox');
   if (lockMode === 'forgot') {
@@ -1931,10 +2091,10 @@ function viewAccounts() {
   const types = [...new Set(c.accts.map(a => a.type || 'Other'))];
   const total = c.accts.reduce((s, a) => s + a.bal, 0);
   return `${cycleSelect()}
-  <section class="card"><div class="card-head"><h2>All accounts</h2><small>since tracking started</small></div>
-    <div class="big num" style="font-size:30px;font-weight:800;letter-spacing:-.02em">${naira(total)}</div>
-    <p class="note" style="margin-top:4px">Balances count only money tracked in this file, not what was already in each account before.</p></section>
+  ${netWorthCard()}
+  ${goalsSection()}
   ${debtsSection()}
+  <div class="day" style="margin-top:14px">All accounts · ${naira(total)} <span style="font-weight:500;text-transform:none;letter-spacing:0">(tracked since you started)</span></div>
   <div class="dgrid">${types.map(t => { const list = c.accts.filter(a => (a.type || 'Other') === t); return `<div class="dgroup"><div class="day">${esc(t)} · ${naira(list.reduce((s, a) => s + a.bal, 0))}</div><div class="list">${list.map(a => `
     <button class="item" data-act="acct" data-name="${esc(a.name)}"><div class="mid"><div class="t1">${esc(a.name)}</div><div class="t2">${esc(a.purpose || '')}</div></div>
     <div style="text-align:right"><div class="amt num">${naira(a.bal)}</div><div class="t2 num" style="font-size:12px;color:var(--ink-2)">${a.net >= 0 ? '+' : ''}${naira(a.net)} this cycle</div></div></button>`).join('')}</div></div>`; }).join('')}</div>`;
@@ -1942,22 +2102,26 @@ function viewAccounts() {
 function viewExcel() {
   const p = S.meta.pending || 0;
   const tooMany = S.setup.categories.length > DASH_CAT_ROWS || S.setup.accounts.length > DASH_ACCT_ROWS;
-  return `<section class="card">
-    <div class="card-head"><h2>Excel backup · ${esc(CUR.code)}</h2>${p ? `<span class="badge">${p} not in Excel</span>` : '<span class="badge ok">Up to date</span>'}</div>
+  const snap = snapshots()[0], auto = lsGet('mt-autofile-last');
+  return `${paydaySettingsCard()}
+  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Backup &amp; restore</h2>${IS_NATIVE && auto ? '<span class="badge ok">Auto: ' + esc(fmtDM(auto.at.slice(0, 10))) + '</span>' : snap ? '<span class="badge ok">Auto: ' + esc(fmtDM(snap)) + '</span>' : ''}</div>
+    <p class="note" style="margin:0 0 12px">${IS_NATIVE ? 'A backup is saved every day in <b>' + FOLDER_SHOWN + '</b> on this phone. It stays even if you uninstall the app.' : 'Daily restore points, plus a backup file with everything for Google Drive or OneDrive.'}</p>
+    <button class="btn sec" data-act="openBackup">Backup files &amp; restore points</button>
+    <div class="subhead"><h3>Excel · ${esc(CUR.code)}</h3>${p ? `<span class="badge">${p} not in Excel</span>` : '<span class="badge ok">Up to date</span>'}</div>
     <div class="kv"><span>File</span><span>${esc(exportName())}</span></div>
     <div class="kv"><span>Loaded from Excel</span><span>${fmtStamp(S.meta.importedAt)}</span></div>
     <div class="kv"><span>Last saved to Excel</span><span>${fmtStamp(S.meta.exportedAt)}</span></div>
-    <div style="margin-top:14px"><button class="btn" data-act="export">Save to Excel</button><button class="btn sec" data-act="import">Load from Excel</button></div>
+    <div style="margin-top:12px"><button class="btn" data-act="export">Save to Excel</button><button class="btn sec" data-act="import">Load from Excel</button></div>
     <details style="margin-top:12px"><summary>How the app and Excel stay in step</summary>
-      <ol class="steps"><li><b>Logged things on your phone?</b> Tap <i>Save to Excel</i>, then replace the copy in OneDrive. Your dashboard, budgets and charts update when Excel opens it.</li>
+      <ol class="steps"><li><b>Logged things on your phone?</b> Tap <i>Save to Excel</i>${IS_NATIVE ? ' (a copy goes in ' + FOLDER_SHOWN + ')' : ''}, then put it in OneDrive in place of the old copy. Your dashboard, budgets and charts update when Excel opens it.</li>
       <li><b>Edited the Excel on your laptop?</b> Tap <i>Load from Excel</i> and pick it from OneDrive. The app picks up your changes.</li>
       <li>Save before you load, or changes made in the app since your last save are replaced.</li>
-      <li>Each currency has its own Excel file.</li></ol>
+      <li>Each currency has its own Excel file. The backup file above holds every currency.</li></ol>
     </details>
   </section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Backup &amp; restore</h2>${snapshots()[0] ? '<span class="badge ok">Auto: ' + esc(fmtDM(snapshots()[0])) + '</span>' : ''}</div>
-    <p class="note" style="margin:0 0 12px">Daily restore points, plus a backup file with everything (all currencies, bills, quick adds, lent &amp; borrowed) for Google Drive or OneDrive.</p>
-    <button class="btn sec" data-act="openBackup">Backup &amp; restore</button></section>
+  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>PDF statement</h2></div>
+    <p class="note" style="margin:0 0 12px">Like a bank statement: pick the dates, accounts and categories, then print it, keep it or send it.</p>
+    <button class="btn sec" data-act="openStatement">Make a statement</button></section>
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Bills &amp; subscriptions</h2><small>${bills().length || 'none yet'}</small></div>
     <p class="note" style="margin:0 0 12px">Rent, DStv, internet, school fees: reminders before each is due, and one-tap paying from Home.</p>
     <button class="btn sec" data-act="manageBills">Manage bills</button></section>
@@ -1986,25 +2150,26 @@ function viewExcel() {
     </details>
     ${tooMany ? `<p class="note">Your Excel dashboard has rows for ${DASH_CAT_ROWS} categories and ${DASH_ACCT_ROWS} accounts. Extra ones are tracked here but won’t show on the Excel dashboard.</p>` : ''}
   </section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Payday list</h2><small>${Array.isArray(S.prefs.template) && S.prefs.template.length ? S.prefs.template.length + ' entries saved' : 'not saved yet'}</small></div>
-    <p class="note" style="margin:0 0 12px">The salary, allowances, bills and transfers you log every payday, all in one tap. To add something, open it in Activity and tap <b>Add to payday list</b>.</p>
-    <button class="btn sec" data-act="payday">Open payday list</button></section>
+  ${feeSettingsCard()}
   <section class="card"><div class="card-head" style="margin-bottom:10px"><h2>Appearance</h2></div>${themeSeg()}</section>
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2><span class="badge ok">On</span></div>
     <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your ' + (lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN') + ' when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
     ${getPin() && UI.bioAvail ? (lsGet(BIO_KEY) ? '<div class="kv" style="margin-bottom:10px"><span>Fingerprint unlock</span><span class="st ok">' + ICON.ok + ' On</span></div><button class="btn sec" data-act="disableBio">Turn off fingerprint</button>' : '<button class="btn" data-act="enableBio">Unlock with fingerprint too</button>') : ''}
-    <button class="btn sec" data-act="setPin">Change PIN</button></section>
+    <button class="btn sec" data-act="setPin">Change PIN</button>
+    <button class="btn sec" data-act="logout">${IS_NATIVE ? 'Log out and close the app' : 'Log out'}</button></section>
   ${IS_NATIVE ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Reminders</h2>${lsGet(REMIND_KEY) ? '<span class="badge ok">On</span>' : ''}</div>
     <p class="note" style="margin:0 0 12px">A nudge when entries aren’t backed up to Excel for a week, and a reminder the day before payday.</p>
     ${lsGet(REMIND_KEY) ? '<button class="btn sec" data-act="disableRem">Turn off reminders</button>' : '<button class="btn sec" data-act="enableRem">Turn on reminders</button>'}</section>` : ''}
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Share Money Tracker</h2></div>
     <p class="note" style="margin:0 0 12px">Send the app to family or friends. They get their own empty tracker; none of your data is shared.</p>
-    ${IS_NATIVE ? '<button class="btn" data-act="shareApk">Send the app file</button><p class="note" style="margin:6px 2px 10px">Goes by WhatsApp, Telegram, Bluetooth, Quick Share or email. Works for Android phones.</p>' : ''}
-    <button class="btn sec" data-act="shareApp">${IS_NATIVE ? 'Share a download link instead' : 'Share a download link'}</button></section>
+    ${IS_NATIVE ? '<button class="btn" data-act="shareApk">Send the app file</button><p class="note" style="margin:6px 2px 0">Goes by WhatsApp, Telegram, Bluetooth, Quick Share or email. Works for Android phones.</p>' : '<button class="btn sec" data-act="shareApp">Share a download link</button>'}</section>
   ${REG.list.length > 1 ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>${esc(CUR.name)} tracker</h2></div>
     <p class="note" style="margin:0 0 12px">Deleting removes this tracker and all its entries from this phone. Save to Excel first if you want to keep them.</p>
     <button class="btn danger" data-act="deleteBook">${UI.confirmBookDel ? 'Tap again to delete the ' + esc(CUR.code) + ' tracker' : 'Delete the ' + esc(CUR.code) + ' tracker'}</button></section>` : ''}
-  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only, and your Excel file in OneDrive is the backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml()}`;
+  ${IS_NATIVE ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Uninstall</h2></div>
+    <p class="note" style="margin:0 0 12px">Remove Money Tracker from this phone. You’ll get the chance to back up first.</p>
+    <button class="btn danger" data-act="uninstall">Uninstall Money Tracker</button></section>` : ''}
+  <p class="note" style="margin:0 6px 20px">Your entries are saved on this phone only. ${IS_NATIVE ? 'Daily backups go to ' + FOLDER_SHOWN + ', and' : ''} your Excel file in OneDrive is a second backup. Save to Excel regularly, and before you clear your browser data or change phones.</p>${creditHtml()}`;
 }
 
 /* ---------- drill-downs ---------- */
@@ -2068,8 +2233,8 @@ function drawForm() {
     <div class="fld"><label>To</label>${acctSelect('to', v.to, 'To account')}${acctType(v.to) === 'Savings' && acctType(v.from) !== 'Savings' ? '<div class="hint">Counts as saved</div>' : ''}</div>`;
   if (k === 'expenses' && v.method === 'Cash') { v.fee = 0; v.feeOther = false; }
   if (k !== 'income' && !v.feeFor && v.category !== CHARGES && !(k === 'expenses' && v.method === 'Cash')) {
-    const opts = CUR.code === 'NGN' ? [0, 10, 50, 60, 100] : [0], f = +v.fee || 0, other = v.feeOther || (f > 0 && !opts.includes(f));
-    body += `<div class="fld"><label>Bank charge</label><div class="chips">${opts.map(o => `<button type="button" class="chip ${!other && f === o ? 'on' : ''}" data-fee="${o}">${o ? naira(o) : 'None'}</button>`).join('')}<button type="button" class="chip ${other ? 'on' : ''}" data-fee="other">Other</button></div>
+    const opts = [0, ...feeChips()], f = +v.fee || 0, other = v.feeOther || (f > 0 && !opts.includes(f));
+    body += `<div class="fld"><label>Bank charge</label><div class="chips">${opts.map(o => `<button type="button" class="chip ${!other && f === o ? 'on' : ''}" data-fee="${o}">${o ? nairaRaw(o) : 'None'}</button>`).join('')}<button type="button" class="chip ${other ? 'on' : ''}" data-fee="other">Other</button></div>
       ${other ? `<input class="in" id="f-fee" inputmode="decimal" placeholder="Charge amount" value="${f ? NF.format(f) : ''}" data-money style="margin-top:8px">` : ''}
       <div class="note" id="fee-hint" style="margin-top:6px">${hintFor(st, +v.amount || 0)}</div></div>`;
   }
@@ -2109,16 +2274,18 @@ function saveForm() {
 function findEntry(kind, id) { return allOf(kind).find(e => e.id === id); }
 
 /* ---------- events ---------- */
-document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key],[data-fee],[data-cur],[data-obkey]');
-  if (ev.target === $('#overlay')) { closeSheet(); return; }
+document.addEventListener('click', async ev => {
+  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key],[data-fee],[data-tifee],[data-cur],[data-obkey]');
+  if (ev.target === $('#overlay')) { if (crop) cropFinish(false); else closeSheet(); return; }
+  if (ev.target === $('#photoView')) { closePhoto(); return; }
   if (!t) return;
   if (t.dataset.key) { pressKey(t.dataset.key); return; }
   if (t.dataset.obkey) { obKey(t.dataset.obkey); return; }
   if (t.dataset.cur) { switchBook(t.dataset.cur); return; }
+  if (t.dataset.tifee !== undefined) { const n = +t.dataset.tifee, f = $('#ti-fee'); if (f) f.value = n ? NF.format(n) : ''; t.parentNode.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === t)); return; }
   if (t.dataset.fee !== undefined && sheetCtx && sheetCtx.form) {
     syncFormInputs();
-    if (t.dataset.fee === 'other') { sheetCtx.v.feeOther = true; if ((CUR.code === 'NGN' ? [0, 10, 50, 60, 100] : [0]).includes(+sheetCtx.v.fee)) sheetCtx.v.fee = 0; }
+    if (t.dataset.fee === 'other') { sheetCtx.v.feeOther = true; if ([0, ...feeChips()].includes(+sheetCtx.v.fee)) sheetCtx.v.fee = 0; }
     else { sheetCtx.v.feeOther = false; sheetCtx.v.fee = +t.dataset.fee; }
     drawForm(); if (t.dataset.fee === 'other') setTimeout(() => { const f = $('#f-fee'); if (f) f.focus(); }, 50);
     return;
@@ -2140,15 +2307,61 @@ document.addEventListener('click', ev => {
   else if (a === 'allBudgets') { UI.allBudgets = !UI.allBudgets; render(); }
   else if (a === 'allCompare') { UI.allCompare = !UI.allCompare; render(); }
   else if (a === 'payday') openPayday();
-  else if (a === 'plRemove') { sheetCtx.date = $('#pd-date').value || sheetCtx.date; sheetCtx.remember = $('#pd-remember').checked; sheetCtx.lines = sheetCtx.lines.filter(l => l.uid !== t.dataset.uid); drawPayday(); }
+  else if (a === 'toggleHide') toggleHide();
+  else if (a === 'logout') logout();
+  else if (a === 'crPreset') { $('#cr-start').value = t.dataset.a; $('#cr-end').value = t.dataset.b; }
+  else if (a === 'crApply') applyCustomRange();
+  else if (a === 'crClear') { UI.custom = null; closeSheet(); render(); }
+  else if (a === 'profView') viewPhoto(sheetCtx && sheetCtx.photo);
+  else if (a === 'closePhoto') closePhoto();
+  else if (a === 'cropDone') cropFinish(true);
+  else if (a === 'cropCancel') cropFinish(false);
+  else if (a === 'shareBackup') { const f = sheetCtx && sheetCtx.backupFile; if (f && await shareUri(f.uri, 'Save your backup')) closeSheet(); }
+  else if (a === 'openStatement') openStatement();
+  else if (a === 'reportPdf') { openStatement(); sheetCtx.start = t.dataset.a; sheetCtx.end = t.dataset.b; drawStatement(); }
+  else if (a === 'stType') { readStatement(); sheetCtx.types[t.dataset.v] = !sheetCtx.types[t.dataset.v]; drawStatement(); }
+  else if (a === 'stToggle') stToggle(t.dataset.key, t.dataset.v);
+  else if (a === 'stAll') { readStatement(); const k = t.dataset.key, setup = bookOf(sheetCtx.code).setup; sheetCtx[k] = sheetCtx[k] ? null : []; drawStatement(); const d = document.querySelectorAll('.stdet')[k === 'accts' ? 0 : 1]; if (d) d.open = true; }
+  else if (a === 'stRange') { $('#st-start').value = t.dataset.a; $('#st-end').value = t.dataset.b; }
+  else if (a === 'stMake') makeStatement();
+  else if (a === 'pdfOpen') { try { await NP.Open.openFile({ path: sheetCtx.pdf.uri, mimeType: 'application/pdf' }); } catch (e) { toast('No app to open PDFs was found. Use Send instead. (' + errText(e) + ')', 5000); } }
+  else if (a === 'pdfShare') shareUri(sheetCtx.pdf.uri, 'Send your statement');
+  else if (a === 'pdfDownload') pdfDownload();
+  else if (a === 'pdfWebShare') { try { await navigator.share({ files: [new File([sheetCtx.pdfBlob], sheetCtx.pdfName, { type: 'application/pdf' })] }); closeSheet(); } catch (e) { if (!e || e.name !== 'AbortError') pdfDownload(); } }
+  else if (a === 'openForecast') openForecast();
+  else if (a === 'newGoal') openGoalForm(null);
+  else if (a === 'editGoal') openGoalForm(goals().find(x => x.id === t.dataset.id));
+  else if (a === 'saveGoal') saveGoal();
+  else if (a === 'delGoal') { if (!sheetCtx.confirmDel) { sheetCtx.confirmDel = true; t.textContent = 'Tap again to delete'; return; } S.prefs.goals = goals().filter(x => x.id !== sheetCtx.id); S.prefs.template = tpl().map(l => l.goalId === sheetCtx.id ? (({ goalId, ...r }) => r)(l) : l); saveCache(); closeSheet(); render(); toast('Goal deleted'); }
+  else if (a === 'openGoal') openGoal(t.dataset.id);
+  else if (a === 'goalAdd') { const g = goals().find(x => x.id === sheetCtx.id), n = readAmount($('#gl-add').value); if (!(n > 0)) return; g.saved = (+g.saved || 0) + n; saveCache(); render(); openGoal(g.id); toast('Added ' + naira(n)); }
+  else if (a === 'goalToPayday') goalToPayday();
+  else if (a === 'openNetWorth') openNetWorth();
+  else if (a === 'newAsset') openAssetForm(null);
+  else if (a === 'editAsset') openAssetForm(assets().find(x => x.id === t.dataset.id));
+  else if (a === 'assetKind') { sheetCtx.kind = t.dataset.v; sheetCtx.draw(); }
+  else if (a === 'saveAsset') saveAsset();
+  else if (a === 'delAsset') { if (!sheetCtx.confirmDel) { sheetCtx.confirmDel = true; t.textContent = 'Tap again to delete'; return; } S.prefs.assets = assets().filter(x => x.id !== sheetCtx.id); saveCache(); render(); openNetWorth(); }
+  else if (a === 'uninstall') openUninstall(1);
+  else if (a === 'uninstBackup') uninstBackup();
+  else if (a === 'uninstNext') openUninstall(2);
+  else if (a === 'uninstGo') { if (!sheetCtx.sure) { sheetCtx.sure = true; t.textContent = 'Tap again to uninstall'; return; } uninstGo(); }
+  else if (a === 'pdAddItem') { syncPaydayHead(); openTplItem(null, 'payday'); }
+  else if (a === 'tplAdd') openTplItem(null, 'settings');
+  else if (a === 'tplEdit') openTplItem(tpl().find(x => x.pid === t.dataset.pid), 'settings');
+  else if (a === 'tplKind') { readTplForm(); sheetCtx.v.kind = t.dataset.v; drawTplItem(); }
+  else if (a === 'tplSave') saveTplItem();
+  else if (a === 'tplDelete') deleteTplItem();
+  else if (a === 'tplAdopt') { S.prefs.template = defaultTemplate().map(l => ({ ...l, pid: newId() })); saveCache(); render(); toast('Payday list set up. Remove anything that isn’t monthly.'); }
+  else if (a === 'saveChips') { const v = [0, 1, 2].map(i => readAmount($('#fc' + i).value)).map(n => n > 0 ? Math.round(n * 100) / 100 : 0); S.prefs.feeChips = v; saveCache(); render(); toast('Charge buttons saved'); }
+  else if (a === 'resetChips') { delete S.prefs.feeChips; saveCache(); render(); toast('Back to ₦10.75, ₦26.88 and ₦53.75'); }
   else if (a === 'logPayday') logPayday();
-  else if (a === 'savePaydayOnly') { savePaydayTemplate(); closeSheet(); render(); toast('Payday list saved'); }
   else if (a === 'toTemplate') {
     const e = findEntry(sheetCtx.kind, sheetCtx.editing); if (!e) return;
-    if (!Array.isArray(S.prefs.template) || !S.prefs.template.length) S.prefs.template = defaultTemplate();
-    const line = toLine(sheetCtx.kind, e), key = JSON.stringify(line);
-    if (S.prefs.template.some(l => JSON.stringify(l) === key)) { toast('Already on your payday list'); return; }
-    S.prefs.template.push(line); saveCache(); closeSheet(); render(); toast('Added to your payday list');
+    const line = toLine(sheetCtx.kind, e), ch = sheetCtx.kind !== 'income' && linkedCharge(e.id), key = JSON.stringify(line);
+    if (tpl().some(({ pid, fee, ...l }) => JSON.stringify(l) === key)) { toast('Already on your payday list'); return; }
+    line.pid = newId(); line.fee = ch ? ch.amount : 0;
+    tpl().push(line); saveCache(); closeSheet(); render(); toast('Added to your payday list');
   }
   else if (a === 'startFresh') { const c = $('#firstcur'); startFresh(c ? c.value : 'NGN'); }
   else if (a === 'addCur') openAddCurrency();
@@ -2252,13 +2465,9 @@ function syncFormInputs() {
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.id === 'fileIn') { handleFile(t.files[0]); return; }
-  if (t.id === 'photoIn' && t.files[0]) {
-    readPhoto(t.files[0]).then(url => {
-      if ((photoTarget === 'obPhoto' || !photoTarget) && UI.ob) { UI.ob.name = ($('#obname') || {}).value || UI.ob.name; UI.ob.photo = url; render(); }
-      else if (photoTarget === 'profPhoto' && sheetCtx && sheetCtx.profile) { sheetCtx.photo = url; drawProfile($('#prname').value); }
-    }).catch(e => toast(e.message));
-    return;
-  }
+  if (t.id === 'photoIn' && t.files[0]) { openCropper(t.files[0], photoTarget || 'obPhoto'); return; }
+  if (t.id === 'st-cur' && sheetCtx && sheetCtx.stmt) { readStatement(); sheetCtx.code = t.value; sheetCtx.accts = null; sheetCtx.cats = null; drawStatement(); return; }
+  if (t.id === 'gl-acc') { const f = $('#gl-savedf'); if (f) f.hidden = !!t.value; return; }
   if (t.id === 'firstcur') { UI.firstCur = t.value; return; }
   if (t.id === 'rep-cyc') { openReport(t.value); return; }
   if (t.id === 'restoreIn' && t.files[0]) { t.files[0].text().then(txt => { let o; try { o = JSON.parse(txt); } catch (e) { toast('That isn’t a Money Tracker backup file.'); return; } if (!o || o.app !== 'Money Tracker') { toast('That isn’t a Money Tracker backup file.'); return; } confirmRestore('this backup', o); }); return; }
@@ -2268,6 +2477,7 @@ document.addEventListener('change', ev => {
     if (t.dataset.pl === 'on') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid); l.on = t.checked; t.closest('.pl').classList.toggle('off', !t.checked); refreshPaydayTotals(); return; }
     if (t.dataset.pl === 'amount') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid), n = readAmount(t.value); if (!isNaN(n) && n >= 0) l.amount = n; t.value = NF.format(l.amount); refreshPaydayTotals(); return; }
     if (t.id === 'pd-date' && t.value) { sheetCtx.date = t.value; sheetCtx.remember = $('#pd-remember').checked; drawPayday(); return; }
+    if (t.dataset.pl === 'fee') { const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid), n = readAmount(t.value); l.fee = n > 0 ? n : 0; syncPaydayHead(); drawPayday(); return; }
     if (['desc', 'category', 'source', 'account', 'from', 'to'].includes(t.dataset.pl)) {
       const l = sheetCtx.lines.find(x => x.uid === t.dataset.uid); l[t.dataset.pl] = t.dataset.pl === 'desc' ? t.value.trim() : t.value;
       if (l.kind === 'transfers' && l.from === l.to) toast('From and To are the same account. Change one of them.');
@@ -2275,18 +2485,580 @@ document.addEventListener('change', ev => {
     }
   }
   const c = t.dataset.change;
-  if (c === 'cycle') { UI.cycle = t.value; render(); }
+  if (c === 'cycle') { if (t.value === '__custom') { render(); openCustomRange(); return; } if (t.value === '__cur') return; UI.custom = null; UI.cycle = t.value || null; render(); }
   else if (c === 'budget') { const n = readAmount(t.value); const cat = S.setup.categories[+t.dataset.i]; if (!isNaN(n) && n >= 0 && n !== cat.budget) { cat.budget = n; bumpPending(); toast('Budget for ' + cat.name + ' set to ' + naira(n)); } else t.value = cat.budget; }
   else if (c === 'warn') { S.setup.warn = +t.value; bumpPending(); }
 });
 document.addEventListener('input', ev => {
   if (ev.target.id === 'q') { UI.q = ev.target.value; const r = $('#actResults'); if (r) r.innerHTML = activityResults(); return; }
-  if (ev.target.dataset && ev.target.dataset.pl === 'amount' && sheetCtx && sheetCtx.payday) { const l = sheetCtx.lines.find(x => x.uid === ev.target.dataset.uid), n = readAmount(ev.target.value); if (l && !isNaN(n) && n >= 0) { l.amount = n; refreshPaydayTotals(); } return; }
+  if (ev.target.dataset && ev.target.dataset.pl === 'amount' && sheetCtx && sheetCtx.payday) { formatMoneyInput(ev.target); const l = sheetCtx.lines.find(x => x.uid === ev.target.dataset.uid), n = readAmount(ev.target.value); if (l && !isNaN(n) && n >= 0) { l.amount = n; refreshPaydayTotals(); } return; }
   if (ev.target.id === 'f-amount') { const h = $('#fee-hint'); if (h && sheetCtx && sheetCtx.form) h.innerHTML = hintFor(sheetCtx, readAmount(ev.target.value) || 0); }
-  if (ev.target.id === 'f-amount' || (ev.target.hasAttribute && ev.target.hasAttribute('data-money'))) { const el = ev.target, raw = el.value.replace(/[^\d.]/g, ''); const [i, d] = raw.split('.'); const f = (i ? NF.format(+i) : '') + (d !== undefined ? '.' + d.slice(0, 2) : ''); if (f !== el.value) el.value = f; }
+  if (ev.target.id === 'f-amount' || (ev.target.hasAttribute && ev.target.hasAttribute('data-money'))) formatMoneyInput(ev.target);
+  if (ev.target.id === 'cropz' && crop) cropZoom(+ev.target.value);
 });
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.addrow')) ev.target.closest('.addrow').querySelector('button').click(); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') { if (!$('#photoView').hidden) { closePhoto(); return; } if (crop) { cropFinish(false); return; } closeSheet(); } if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.addrow')) ev.target.closest('.addrow').querySelector('button').click(); });
 $('#fab').addEventListener('click', () => openForm('expenses'));
+
+
+/* ===================== version 2.1 features ===================== */
+/* ---------- hide figures ---------- */
+function toggleHide() { HIDE = !HIDE; lsSet('mt-hide', HIDE ? 1 : 0); render(); toast(HIDE ? 'Figures hidden. Tap the eye to show them.' : 'Figures showing'); }
+const EYE = on => on
+  ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.4 2.5 12 2.5 12S6 19 12 19a9.6 9.6 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
+  : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const POWER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/></svg>';
+function renderHeadBtns() {
+  const el = $('#hbtns'); if (!el) return;
+  const show = UI.ready && !UI.locked && !setupNeeded() && !!S.setup;
+  el.hidden = !show; if (!show) return;
+  el.innerHTML = `<button class="ibtn" data-act="toggleHide" aria-label="${HIDE ? 'Show figures' : 'Hide figures'}" aria-pressed="${HIDE}">${EYE(HIDE)}</button><button class="ibtn" data-act="logout" aria-label="Log out">${POWER}</button>`;
+}
+
+/* ---------- log out: lock, and close the app on the phone ---------- */
+function logout() {
+  closeSheet();
+  if (!getPin()) { if (IS_NATIVE) NP.App.exitApp(); return; }
+  lockApp(true);
+  if (IS_NATIVE) setTimeout(() => { try { NP.App.exitApp(); } catch (e) {} }, 120);
+  else toast('Logged out');
+}
+
+/* ---------- custom date range (Home, Activity and the report follow it) ---------- */
+function openCustomRange() {
+  const r = cycleRange(), t = todayISO();
+  openSheet(`<div class="phead"><h3>Custom dates</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">Show Home, Activity and the report for any dates you choose.</p>
+    <div class="fld" style="margin-top:12px"><label for="cr-start">From</label><input type="date" class="in" id="cr-start" value="${UI.custom ? UI.custom.start : r.start}" max="${t}"></div>
+    <div class="fld"><label for="cr-end">To</label><input type="date" class="in" id="cr-end" value="${UI.custom ? UI.custom.end : (r.end || t)}"></div>
+    <div class="chips" style="margin:2px 0 6px">${[['This month', t.slice(0, 8) + '01', t], ['Last 30 days', addDays(t, -29), t], ['Last month', (() => { const [y, m] = isoParts(t); const d = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10); return d; })(), addDays(t.slice(0, 8) + '01', -1)], ['This year', t.slice(0, 4) + '-01-01', t]].map(([l, a, b]) => `<button type="button" class="chip" data-act="crPreset" data-a="${a}" data-b="${b}">${l}</button>`).join('')}</div>
+    <div class="err" id="cr-err"></div>
+    <button class="btn" data-act="crApply">Show these dates</button>
+    ${UI.custom ? '<button class="btn sec" data-act="crClear">Back to pay cycles</button>' : ''}`);
+}
+function applyCustomRange() {
+  const a = $('#cr-start').value, b = $('#cr-end').value;
+  if (!a || !b) { $('#cr-err').textContent = 'Pick both dates.'; return; }
+  if (b < a) { $('#cr-err').textContent = 'The end date is before the start date.'; return; }
+  UI.custom = { start: a, end: b }; closeSheet(); render(); window.scrollTo(0, 0);
+}
+
+/* ---------- typing in amount boxes: keep the cursor where you're typing ---------- */
+function formatMoneyInput(el) {
+  const v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
+  const keep = v.slice(0, pos).replace(/[^\d.]/g, '').length; // digits and dot before the cursor
+  const raw = v.replace(/[^\d.]/g, ''), dot = raw.indexOf('.');
+  const i = dot < 0 ? raw : raw.slice(0, dot), d = dot < 0 ? undefined : raw.slice(dot + 1).replace(/\./g, '');
+  const f = (i ? NF.format(+i) : (d !== undefined ? '0' : '')) + (d !== undefined ? '.' + d.slice(0, 2) : '');
+  if (f === v) return;
+  el.value = f;
+  let n = 0, c = 0; while (c < f.length && n < keep) { if (/[\d.]/.test(f[c])) n++; c++; }
+  if (document.activeElement === el) try { el.setSelectionRange(c, c); } catch (e) {}
+}
+
+/* ---------- the app's own folder: Documents › Money Tracker (stays after uninstall) ---------- */
+const FOLDER = 'Money Tracker', FOLDER_SHOWN = 'Documents › Money Tracker';
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return todayISO() + '_' + p(d.getHours()) + p(d.getMinutes()); };
+const errText = e => { const m = e && (e.message || e.errorMessage || (typeof e === 'string' ? e : '')) || ''; const c = e && e.code ? String(e.code) : ''; return ((c && !m.includes(c) ? c + ': ' : '') + (m || (() => { try { return JSON.stringify(e); } catch (x) { return 'unknown error'; } })())).slice(0, 220); };
+// Writes base64 data into the folder. If a file with that name can't be replaced (e.g. made by an earlier install), a new name is used.
+async function saveToFolder(name, b64) {
+  const tries = [name, name.replace(/(\.[a-z]+)$/i, '_' + stamp() + '$1'), name.replace(/(\.[a-z]+)$/i, '_' + newId() + '$1')];
+  let last;
+  for (const n of tries) {
+    try { const w = await NP.Fs.writeFile({ path: FOLDER + '/' + n, data: b64, directory: 'DOCUMENTS', recursive: true }); return { name: n, uri: w.uri }; }
+    catch (e) { last = e; }
+  }
+  throw last;
+}
+const savedNote = f => `<p class="note" style="margin-top:0">Saved on this phone in <b>${FOLDER_SHOWN}</b> as <i>${esc(f.name)}</i>. Open it with the Files app. It stays there even if you uninstall Money Tracker.</p>`;
+async function shareUri(uri, title) { try { await NP.Share.share({ title, files: [uri], dialogTitle: title }); return true; } catch (e) { if (!/cancel/i.test(errText(e))) toast('Couldn’t share: ' + errText(e), 4000); return false; } }
+// One automatic backup a day in the folder; the last 7 are kept.
+async function autoFolderBackup() {
+  if (!IS_NATIVE || !REG.list.length) return;
+  const today = todayISO(); if (lsGet('mt-autofile') === today) return;
+  try {
+    const text = JSON.stringify(allData(false));
+    const f = await saveToFolder('Money_Tracker_auto_' + stamp() + '.json', bytesToB64(new TextEncoder().encode(text)));
+    lsSet('mt-autofile', today); lsSet('mt-autofile-last', { at: new Date().toISOString(), name: f.name }); lsSet('mt-autofile-err', null);
+    try {
+      const r = await NP.Fs.readdir({ path: FOLDER, directory: 'DOCUMENTS' });
+      const autos = (r.files || []).map(x => typeof x === 'string' ? x : x.name).filter(n => /^Money_Tracker_auto_.*\.json$/.test(n)).sort();
+      for (const n of autos.slice(0, -7)) { try { await NP.Fs.deleteFile({ path: FOLDER + '/' + n, directory: 'DOCUMENTS' }); } catch (e) {} }
+    } catch (e) {}
+  } catch (e) { lsSet('mt-autofile-err', errText(e)); }
+}
+
+/* ---------- in-app update: two download methods, real errors, no browser ---------- */
+async function downloadUpdate() {
+  const u = UI.forceUpdate; u.stage = 'downloading'; u.pct = 0; u.error = ''; u.detail = ''; drawUpdate();
+  const name = 'MoneyTracker-' + u.version + '.apk', errs = [];
+  const prog = (bytes, total) => { total = total || u.size; if (total) { const p = Math.min(1, bytes / total); if (p - u.pct >= 0.01 || p === 1) { u.pct = p; drawUpdate(); } } };
+  const okSize = async () => { try { const st = await NP.Fs.stat({ path: name, directory: 'CACHE' }); return st && (!u.size || st.size >= u.size * 0.98) ? st.uri : null; } catch (e) { return null; } };
+  let file = null, sub = null;
+  try { await NP.Fs.deleteFile({ path: name, directory: 'CACHE' }); } catch (e) {}
+  // Method 1: the File Transfer plugin
+  try {
+    const { uri } = await NP.Fs.getUri({ path: name, directory: 'CACHE' });
+    sub = await NP.FT.addListener('progress', p => { if (p && p.type === 'download') prog(p.bytes, p.contentLength); });
+    await NP.FT.downloadFile({ url: u.url, path: uri, progress: true });
+    file = await okSize(); if (!file) errs.push('1: file incomplete');
+  } catch (e) { errs.push('1: ' + errText(e)); }
+  finally { try { if (sub && sub.remove) await sub.remove(); } catch (e) {} sub = null; }
+  // Method 2: the Filesystem plugin's own downloader
+  if (!file) {
+    u.pct = 0; drawUpdate();
+    try { await NP.Fs.deleteFile({ path: name, directory: 'CACHE' }); } catch (e) {}
+    try {
+      sub = await NP.Fs.addListener('progress', p => { if (p) prog(p.bytes, p.contentLength); });
+      await NP.Fs.downloadFile({ url: u.url, path: name, directory: 'CACHE', progress: true });
+      file = await okSize(); if (!file) errs.push('2: file incomplete');
+    } catch (e) { errs.push('2: ' + errText(e)); }
+    finally { try { if (sub && sub.remove) await sub.remove(); } catch (e) {} }
+  }
+  if (!file) { u.stage = 'ready'; u.error = 'The download didn’t finish. Check your internet connection (Wi-Fi or data) and tap Try again.'; u.detail = errs.join(' · '); drawUpdate(); return; }
+  u.file = file; u.stage = 'installing'; drawUpdate();
+  await openInstaller();
+}
+async function openInstaller() {
+  const u = UI.forceUpdate;
+  try { await NP.Open.openFile({ path: u.file, mimeType: 'application/vnd.android.package-archive' }); }
+  catch (e) { u.stage = 'ready'; u.error = 'Android couldn’t open the installer. Tap Try again.'; u.detail = errText(e); drawUpdate(); }
+}
+
+/* ---------- uninstall ---------- */
+function openUninstall(step) {
+  sheetCtx = { uninstall: true, step: step || 1 };
+  const backed = lsGet('mt-uninst-backup');
+  if (sheetCtx.step === 1) openSheet(`<div class="phead"><h3>Sad to see you go</h3><button class="x" data-close>×</button></div>
+    <div style="display:flex;justify-content:center;margin:2px 0 8px">${logoSvg(64)}</div>
+    <p style="margin-top:0">Thank you for using Money Tracker${getProfile() && getProfile().name ? ', ' + esc(firstName(getProfile().name)) : ''}. If something wasn’t working for you, Ehis would love to hear about it.</p>
+    <p class="note">Uninstalling deletes everything the app keeps on this phone: your entries, budgets, payday list, bills, goals and PIN. Save a backup first so you can bring it all back later.</p>
+    <button class="btn" data-act="uninstBackup">${backed ? 'Backed up ✓ · back up again' : 'Back up everything first'}</button>
+    <button class="btn sec" data-act="uninstNext">${backed ? 'Continue' : 'Continue without a backup'}</button>
+    <button class="linkbtn" data-close>I’ll stay</button>`, sheetCtx);
+  else openSheet(`<div class="phead"><h3>Uninstall Money Tracker?</h3><button class="x" data-close>×</button></div>
+    <p style="margin-top:0">This removes the app and all its data from this phone. ${backed ? 'Your backup in <b>' + FOLDER_SHOWN + '</b> stays, and you can restore it if you install the app again.' : '<b>You haven’t saved a backup</b>, so your entries can’t be brought back.'}</p>
+    <button class="btn danger" data-act="uninstGo">Yes, uninstall</button>
+    <button class="btn sec" data-close>Cancel</button>`, sheetCtx);
+}
+async function uninstBackup() {
+  try {
+    const text = JSON.stringify(allData(true)), f = await saveToFolder('Money_Tracker_backup_' + stamp() + '.json', bytesToB64(new TextEncoder().encode(text)));
+    lsSet('mt-uninst-backup', f.name); toast('Backed up to ' + FOLDER_SHOWN, 3500); openUninstall(1);
+  } catch (e) { toast('Couldn’t save the backup: ' + errText(e), 5000); }
+}
+async function uninstGo() {
+  try { await NP.Uninstall.uninstall(); closeSheet(); }
+  catch (e) { toast('Android didn’t open the uninstall screen (' + errText(e) + '). Uninstall from your phone’s Settings › Apps instead.', 6000); }
+}
+
+/* ---------- profile photo: view it big, and zoom / drag to crop a new one ---------- */
+function viewPhoto(url) {
+  const el = $('#photoView'); if (!el || !url) return;
+  el.innerHTML = `<button class="x" data-act="closePhoto" aria-label="Close">×</button><img src="${url}" alt="Profile photo">`;
+  el.hidden = false;
+}
+function closePhoto() { const el = $('#photoView'); if (el) { el.hidden = true; el.innerHTML = ''; } }
+// Loads the picked file, scaled down to at most 1600px so big camera photos stay quick to move around.
+function loadImage(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('That image couldn’t be opened.')); };
+    img.src = url;
+  });
+}
+let crop = null;
+async function openCropper(file, target) {
+  let src; try { src = await loadImage(file); } catch (e) { toast(e.message); return; }
+  const back = target === 'profPhoto' && sheetCtx && sheetCtx.profile ? { name: ($('#prname') || {}).value || '', photo: sheetCtx.photo } : null;
+  if (target === 'obPhoto' && UI.ob) UI.ob.name = ($('#obname') || {}).value || UI.ob.name;
+  crop = { src, target, back, z: 1, x: 0, y: 0, pts: new Map() };
+  sheetCtx = { cropping: true };
+  $('#panel').innerHTML = `<div class="grab"></div><div class="phead"><h3>Move and zoom</h3><button class="x" data-act="cropCancel" aria-label="Cancel">×</button></div>
+    <p class="note" style="margin-top:0">Drag the photo to place it in the circle. Pinch, or use the slider, to zoom.</p>
+    <div class="cropbox" id="cropbox"><canvas id="cropcv" width="600" height="600"></canvas><div class="cropmask"></div></div>
+    <div class="zoomrow"><span aria-hidden="true">−</span><input type="range" id="cropz" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><span aria-hidden="true">+</span></div>
+    <button class="btn" data-act="cropDone">Use this photo</button><button class="btn sec" data-act="cropCancel">Cancel</button>`;
+  $('#overlay').classList.add('open');
+  drawCrop();
+}
+// The circle shows a square of the image: at zoom 1 it is the shorter side; x/y move the centre (in image pixels).
+function cropView() {
+  const { src, z } = crop, side = Math.min(src.width, src.height) / z;
+  crop.x = Math.max(-(src.width - side) / 2, Math.min((src.width - side) / 2, crop.x));
+  crop.y = Math.max(-(src.height - side) / 2, Math.min((src.height - side) / 2, crop.y));
+  return { sx: (src.width - side) / 2 + crop.x, sy: (src.height - side) / 2 + crop.y, side };
+}
+function drawCrop() {
+  const cv = $('#cropcv'); if (!cv || !crop) return;
+  const g = cv.getContext('2d'), v = cropView();
+  g.clearRect(0, 0, cv.width, cv.height); g.drawImage(crop.src, v.sx, v.sy, v.side, v.side, 0, 0, cv.width, cv.height);
+}
+function cropMove(dxScreen, dyScreen) { const box = $('#cropbox'); if (!box) return; const v = cropView(), k = v.side / box.clientWidth; crop.x -= dxScreen * k; crop.y -= dyScreen * k; drawCrop(); }
+function cropZoom(z) { crop.z = Math.max(1, Math.min(4, z)); const s = $('#cropz'); if (s) s.value = crop.z; drawCrop(); }
+document.addEventListener('pointerdown', ev => { if (!crop || !ev.target.closest || !ev.target.closest('#cropbox')) return; ev.preventDefault(); crop.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); try { ev.target.setPointerCapture(ev.pointerId); } catch (e) {} if (crop.pts.size === 2) { const [a, b] = [...crop.pts.values()]; crop.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: crop.z }; } });
+document.addEventListener('pointermove', ev => {
+  if (!crop || !crop.pts.has(ev.pointerId)) return; ev.preventDefault();
+  const p = crop.pts.get(ev.pointerId), dx = ev.clientX - p.x, dy = ev.clientY - p.y; crop.pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (crop.pts.size >= 2 && crop.pinch) { const [a, b] = [...crop.pts.values()]; cropZoom(crop.pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / (crop.pinch.d || 1)); }
+  else cropMove(dx, dy);
+}, { passive: false });
+const cropUp = ev => { if (!crop) return; crop.pts.delete(ev.pointerId); if (crop.pts.size < 2) crop.pinch = null; };
+document.addEventListener('pointerup', cropUp); document.addEventListener('pointercancel', cropUp);
+document.addEventListener('wheel', ev => { if (!crop || !ev.target.closest || !ev.target.closest('#cropbox')) return; ev.preventDefault(); cropZoom(crop.z * (ev.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+function cropFinish(ok) {
+  const c = crop; if (!c) return; crop = null;
+  let url = null;
+  if (ok) { const out = document.createElement('canvas'), v = (crop = c, cropView()); crop = null; out.width = out.height = 384; out.getContext('2d').drawImage(c.src, v.sx, v.sy, v.side, v.side, 0, 0, 384, 384); url = out.toDataURL('image/jpeg', 0.86); }
+  if (c.target === 'profPhoto' && c.back) { sheetCtx = { profile: true, photo: ok ? url : c.back.photo }; drawProfile(c.back.name); }
+  else { closeSheet(); if (ok && UI.ob) { UI.ob.photo = url; } render(); }
+}
+
+/* ---------- PDF statement ---------- */
+function loadScript(src) { return new Promise((res, rej) => { if (document.querySelector('script[data-src="' + src + '"]')) return res(); const s = document.createElement('script'); s.src = src; s.dataset.src = src; s.onload = res; s.onerror = () => rej(new Error('Couldn’t load ' + src + '. Check your internet connection and try again.')); document.head.appendChild(s); }); }
+async function loadPdfLib() { if (!(window.jspdf && window.jspdf.jsPDF)) await loadScript('jspdf.umd.min.js'); if (!window.autoTable) await loadScript('jspdf.plugin.autotable.min.js'); }
+const bookOf = code => code === REG.active ? { setup: S.setup, months: S.months } : (lsGet((REG.list.find(b => b.code === code) || {}).key) || {});
+function bookEntries(code, kind) { const d = bookOf(code), out = []; for (const k of Object.keys(d.months || {}).sort()) for (const e of (d.months[k][kind] || [])) out.push(e); return out; }
+function openStatement() {
+  const r = cycleRange();
+  sheetCtx = { stmt: true, code: REG.active, start: r.start, end: r.end || todayISO(), types: { income: true, expenses: true, transfers: true }, accts: null, cats: null };
+  drawStatement();
+  $('#overlay').classList.add('open');
+}
+function readStatement() {
+  const st = sheetCtx, g = id => $('#' + id);
+  if (g('st-start')) st.start = g('st-start').value; if (g('st-end')) st.end = g('st-end').value;
+}
+function drawStatement() {
+  const st = sheetCtx, b = bookOf(st.code), setup = b.setup || { accounts: [], categories: [] };
+  const accts = setup.accounts.map(a => a.name), cats = setup.categories.map(c => c.name);
+  const chipsOf = (list, sel, key) => list.map(n => `<button type="button" class="chip ${!sel || sel.includes(n) ? 'on' : ''}" data-act="stToggle" data-key="${key}" data-v="${esc(n)}">${esc(n)}</button>`).join('');
+  const ty = (k, l) => `<button type="button" class="chip ${st.types[k] ? 'on' : ''}" data-act="stType" data-v="${k}">${l}</button>`;
+  $('#panel').innerHTML = `<div class="grab"></div><div class="phead"><h3>PDF statement</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">A statement you can print, keep or send, like a bank statement. Choose what goes in it.</p>
+    ${REG.list.length > 1 ? `<div class="fld"><label for="st-cur">Currency</label><select class="in" id="st-cur">${REG.list.map(x => `<option value="${x.code}" ${x.code === st.code ? 'selected' : ''}>${esc(curInfo(x.code).name)} (${x.code})</option>`).join('')}</select></div>` : ''}
+    <div class="fld"><label>Dates</label><div class="two"><input type="date" class="in" id="st-start" value="${st.start}" aria-label="From"><input type="date" class="in" id="st-end" value="${st.end}" aria-label="To"></div>
+      <div class="chips" style="margin-top:8px">${cycleList().slice(-3).reverse().map(c => `<button type="button" class="chip" data-act="stRange" data-a="${c.start}" data-b="${c.end || todayISO()}">${fmtCyc(c.start)} cycle</button>`).join('')}<button type="button" class="chip" data-act="stRange" data-a="${todayISO().slice(0, 4)}-01-01" data-b="${todayISO()}">This year</button></div></div>
+    <div class="fld"><label>Include</label><div class="chips">${ty('income', 'Income')}${ty('expenses', 'Spending')}${ty('transfers', 'Transfers')}</div></div>
+    <details class="stdet"><summary>Accounts · ${st.accts ? st.accts.length + ' of ' + accts.length : 'all'}</summary><div class="chips" style="margin-top:8px">${chipsOf(accts, st.accts, 'accts')}</div>
+      <button type="button" class="linkbtn" data-act="stAll" data-key="accts">${st.accts ? 'Select all' : 'Clear all'}</button></details>
+    ${st.types.expenses ? `<details class="stdet"><summary>Spending categories · ${st.cats ? st.cats.length + ' of ' + cats.length : 'all'}</summary><div class="chips" style="margin-top:8px">${chipsOf(cats, st.cats, 'cats')}</div>
+      <button type="button" class="linkbtn" data-act="stAll" data-key="cats">${st.cats ? 'Select all' : 'Clear all'}</button></details>` : ''}
+    <div class="err" id="st-err"></div>
+    <button class="btn" data-act="stMake">Make the PDF</button>`;
+}
+function stToggle(key, v) {
+  readStatement(); const st = sheetCtx, setup = bookOf(st.code).setup, all = key === 'accts' ? setup.accounts.map(a => a.name) : setup.categories.map(c => c.name);
+  let sel = st[key] ? st[key].slice() : all.slice();
+  sel = sel.includes(v) ? sel.filter(x => x !== v) : [...sel, v];
+  st[key] = sel.length === all.length ? null : sel; drawStatement();
+  const d = document.querySelectorAll('.stdet')[key === 'accts' ? 0 : 1]; if (d) d.open = true;
+}
+function statementRows(st) {
+  const inA = n => !st.accts || st.accts.includes(n), rows = [];
+  const keep = e => e.date >= st.start && e.date <= st.end;
+  if (st.types.income) bookEntries(st.code, 'income').filter(e => keep(e) && inA(e.account)).forEach(e => rows.push({ e, kind: 'income', date: e.date, type: 'Income', desc: e.desc || e.source, cat: e.source, acct: e.account, inn: +e.amount }));
+  if (st.types.expenses) bookEntries(st.code, 'expenses').filter(e => keep(e) && inA(e.account) && (!st.cats || st.cats.includes(e.category))).forEach(e => rows.push({ e, kind: 'expenses', date: e.date, type: e.category === CHARGES ? 'Charge' : 'Spending', desc: e.desc || e.category, cat: e.category, acct: e.account, out: +e.amount }));
+  if (st.types.transfers) bookEntries(st.code, 'transfers').filter(e => keep(e) && (inA(e.from) || inA(e.to))).forEach(e => {
+    const row = { e, kind: 'transfers', date: e.date, type: 'Transfer', desc: e.desc || 'Transfer', cat: '', acct: e.from + ' → ' + e.to };
+    if (st.accts && inA(e.from) && !inA(e.to)) row.out = +e.amount; else if (st.accts && inA(e.to) && !inA(e.from)) row.inn = +e.amount; else row.moved = +e.amount;
+    rows.push(row);
+  });
+  return rows.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+}
+// Standard PDF fonts only cover Western characters, so symbols like ₦ and → are swapped for plain ones.
+const WINANSI = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+const pdfSafe = t => String(t ?? '').replace(/₦/g, 'N').replace(/[−]/g, '-').replace(/→/g, '>').replace(/[^\x00-\xff]/g, c => WINANSI.includes(c) ? c : '');
+async function logoPng(px) {
+  const svg = logoSvg(px).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+  const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+  const c = document.createElement('canvas'); c.width = c.height = px; c.getContext('2d').drawImage(img, 0, 0, px, px); return c.toDataURL('image/png');
+}
+async function makeStatement() {
+  readStatement(); const st = sheetCtx, err = m => { $('#st-err').textContent = m; };
+  if (!st.start || !st.end) return err('Pick both dates.'); if (st.end < st.start) return err('The end date is before the start date.');
+  if (!st.types.income && !st.types.expenses && !st.types.transfers) return err('Include at least one kind of entry.');
+  const rows = statementRows(st); if (!rows.length) return err('Nothing matches these choices. Try wider dates or more accounts.');
+  const btn = $('[data-act="stMake"]'); btn.disabled = true; btn.textContent = 'Making the PDF…';
+  try {
+    await loadPdfLib();
+    const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'pt', format: 'a4' }), W = doc.internal.pageSize.getWidth(), code = st.code;
+    const f2 = n => (n < 0 ? '-' : '') + new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(n));
+    const pr = getProfile() || {}, info = curInfo(code), anyMoved = rows.some(r => r.moved);
+    const totIn = rows.reduce((s, r) => s + (r.inn || 0), 0), totOut = rows.reduce((s, r) => s + (r.out || 0), 0), totMoved = rows.reduce((s, r) => s + (r.moved || 0), 0);
+    try { doc.addImage(await logoPng(160), 'PNG', 40, 34, 40, 40); } catch (e) {}
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(11, 11, 11); doc.text('Statement', 90, 56);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(82, 81, 78);
+    doc.text(pdfSafe('Money Tracker · ' + info.name + ' (' + code + ')'), 90, 71);
+    doc.text([pr.name ? pdfSafe('Prepared for ' + pr.name) : '', 'Period: ' + fmtShort(st.start) + ' to ' + fmtShort(st.end), 'Made on ' + fmtShort(todayISO())].filter(Boolean), W - 40, 46, { align: 'right' });
+    const filt = [st.accts ? 'Accounts: ' + st.accts.join(', ') : 'All accounts', st.types.expenses && st.cats ? 'Categories: ' + st.cats.join(', ') : '', 'Includes: ' + ['income', 'expenses', 'transfers'].filter(k => st.types[k]).map(k => ({ income: 'income', expenses: 'spending', transfers: 'transfers' })[k]).join(', ')].filter(Boolean);
+    doc.setFontSize(9); doc.text(doc.splitTextToSize(pdfSafe(filt.join('  ·  ')), W - 80), 40, 98);
+    const sumY = 122;
+    const boxes = [['Money in', totIn], ['Money out', totOut], ...(anyMoved ? [['Transfers', totMoved]] : []), ['Net (in - out)', totIn - totOut]];
+    const bw = (W - 80 - (boxes.length - 1) * 8) / boxes.length;
+    boxes.forEach(([l, v], i) => { const x = 40 + i * (bw + 8); doc.setFillColor(240, 239, 234); doc.roundedRect(x, sumY, bw, 46, 6, 6, 'F'); doc.setFontSize(8.5); doc.setTextColor(82, 81, 78); doc.text(l.toUpperCase(), x + 10, sumY + 16); doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(11, 11, 11); doc.text(code + ' ' + f2(v), x + 10, sumY + 35); doc.setFont('helvetica', 'normal'); });
+    const head = ['Date', 'Type', 'Description', 'Category / source', 'Account', 'In (' + code + ')', 'Out (' + code + ')', ...(anyMoved ? ['Transfer'] : [])];
+    const body = rows.map(r => [fmtShort(r.date), r.type, pdfSafe(r.desc), pdfSafe(r.cat), pdfSafe(r.acct), r.inn ? f2(r.inn) : '', r.out ? f2(r.out) : '', ...(anyMoved ? [r.moved ? f2(r.moved) : ''] : [])]);
+    const right = {}; for (let i = 5; i < head.length; i++) right[i] = { halign: 'right' };
+    window.autoTable(doc, {
+      head: [head], body, startY: sumY + 62, margin: { left: 40, right: 40, bottom: 50 },
+      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, textColor: [11, 11, 11], lineColor: [227, 225, 219], lineWidth: 0.5, overflow: 'linebreak' },
+      headStyles: { fillColor: [11, 110, 79], textColor: 255, fontStyle: 'bold' }, alternateRowStyles: { fillColor: [248, 247, 244] },
+      columnStyles: { 0: { cellWidth: 58 }, 1: { cellWidth: 48 }, ...right },
+      foot: [['', '', 'Total', '', '', f2(totIn), f2(totOut), ...(anyMoved ? [f2(totMoved)] : [])]], footStyles: { fillColor: [240, 239, 234], textColor: [11, 11, 11], fontStyle: 'bold' }, showFoot: 'lastPage'
+    });
+    const n = doc.getNumberOfPages();
+    for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(133, 132, 126); doc.text('Money Tracker · built by Ehis · version ' + APP_LABEL, 40, doc.internal.pageSize.getHeight() - 24); doc.text('Page ' + i + ' of ' + n, W - 40, doc.internal.pageSize.getHeight() - 24, { align: 'right' }); }
+    const name = 'Statement_' + code + '_' + st.start + '_to_' + st.end + '.pdf';
+    const blob = doc.output('blob');
+    await deliverPdf(blob, name);
+  } catch (e) { btn.disabled = false; btn.textContent = 'Make the PDF'; err('Couldn’t make the PDF: ' + errText(e)); }
+}
+async function deliverPdf(blob, name) {
+  if (IS_NATIVE) {
+    const b64 = bytesToB64(new Uint8Array(await blob.arrayBuffer())), f = await saveToFolder(name, b64);
+    sheetCtx = { pdf: f };
+    openSheet(`<div class="phead"><h3>Your statement is ready</h3><button class="x" data-close>×</button></div>${savedNote(f)}
+      <button class="btn" data-act="pdfOpen">Open it</button><button class="btn sec" data-act="pdfShare">Send or save elsewhere</button>`, sheetCtx);
+    return;
+  }
+  const file = new File([blob], name, { type: 'application/pdf' });
+  let canShare = false; try { canShare = !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) {}
+  sheetCtx = { pdfBlob: blob, pdfName: name };
+  openSheet(`<div class="phead"><h3>Your statement is ready</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">${esc(name)}</p>
+    <button class="btn" data-act="pdfDownload">Download</button>${canShare ? '<button class="btn sec" data-act="pdfWebShare">Share</button>' : ''}`, sheetCtx);
+}
+function pdfDownload() { const { pdfBlob, pdfName } = sheetCtx, a = document.createElement('a'); a.href = URL.createObjectURL(pdfBlob); a.download = pdfName; document.body.appendChild(a); a.click(); a.remove(); closeSheet(); toast('Downloaded ' + pdfName); }
+
+/* ---------- analytics: cash-flow forecast, savings goals, net worth (per currency) ---------- */
+const NONCASH = ['Savings', 'Lent', 'Borrowed'];
+const recOff = name => (((S.prefs.recon || {})[name]) || {}).offset || 0;
+// Balance of every account as of a date (entries up to and including that day), plus any balance-check offset.
+function balancesAt(date) {
+  const b = {}; S.setup.accounts.forEach(a => { b[a.name] = recOff(a.name); });
+  const add = (n, v) => { if (n in b) b[n] += v; };
+  allOf('income').forEach(e => { if (!date || e.date <= date) add(e.account, +e.amount || 0); });
+  allOf('expenses').forEach(e => { if (!date || e.date <= date) add(e.account, -(+e.amount || 0)); });
+  allOf('transfers').forEach(e => { if (!date || e.date <= date) { add(e.from, -(+e.amount || 0)); add(e.to, +e.amount || 0); } });
+  return b;
+}
+const isCash = name => { const t = acctType(name); return !!S.setup.accounts.find(a => a.name === name) && !NONCASH.includes(t); };
+
+/* Cash-flow forecast: cash in spending accounts, day by day, until the payday after next. */
+function nextPaydayGuess() {
+  const pi = paydayInfo(cycleRange()); if (pi) return pi.next;
+  const sd = salaryDates(); if (!sd.length) return null;
+  let d = addMonth(sd[0]); while (d <= todayISO()) d = addMonth(d); return S.prefs.nextPayday && S.prefs.nextPayday > todayISO() ? S.prefs.nextPayday : d;
+}
+function paydayCashEffect() {
+  const list = tpl().length ? tpl() : defaultTemplate(); let v = 0; const items = [];
+  for (const l of list) {
+    const fee = +l.fee || 0; let d = 0;
+    if (l.kind === 'income') d = isCash(l.account) ? +l.amount : 0;
+    else if (l.kind === 'expenses') d = isCash(l.account) ? -(+l.amount + fee) : 0;
+    else d = (isCash(l.to) ? +l.amount : 0) - (isCash(l.from) ? +l.amount + fee : 0);
+    if (d) { v += d; items.push({ label: lineTitle(l), v: d }); }
+  }
+  return { v, items, fromList: !!tpl().length };
+}
+function dailySpend() {
+  const t = todayISO(), from = addDays(t, -30), sd = new Set(salaryDates());
+  const sp = allOf('expenses').filter(e => e.date > from && e.date <= t && isCash(e.account) && !e.billId && !sd.has(e.date));
+  const first = allOf('expenses').map(e => e.date).sort()[0];
+  const days = first ? Math.min(30, daysBetween(first > from ? first : addDays(from, 1), t) + 1) : 30;
+  return sum(sp) / Math.max(14, days); // at least two weeks, so a short history or one big weekend doesn't swing it
+}
+function forecast() {
+  if (!S.setup || !S.setup.accounts.length) return null;
+  const t = todayISO(), bal = balancesAt(t), start = Object.keys(bal).filter(isCash).reduce((s, n) => s + bal[n], 0);
+  const np = nextPaydayGuess(), end = np ? addDays(addMonth(np), -1) : addDays(t, 45);
+  const pay = np ? paydayCashEffect() : null, perDay = dailySpend();
+  const events = [];
+  for (const b of bills().filter(b => b.active !== false && b.amount > 0)) {
+    let d = b.due, guard = 0; while (d < t && guard++ < 60) d = nextDue(d, b.freq || 'monthly');
+    while (d <= end && guard++ < 120) { if (!b.account || isCash(b.account)) events.push({ date: d, label: b.name, v: -(+b.amount) }); d = nextDue(d, b.freq || 'monthly'); }
+  }
+  if (np && pay.v) { let d = np; while (d <= end) { events.push({ date: d, label: 'Payday' + (pay.fromList ? '' : ' (from your last one)'), v: pay.v, payday: true }); d = addMonth(d); } }
+  events.sort((a, b) => a.date < b.date ? -1 : 1);
+  const pts = []; let v = start, low = { v: start, date: t }, firstNeg = null;
+  for (let d = t, i = 0; d <= end; d = addDays(d, 1), i++) {
+    if (i > 0) v -= perDay;
+    for (const e of events) if (e.date === d) v += e.v;
+    pts.push({ date: d, v }); if (v < low.v) low = { v, date: d }; if (v < 0 && !firstNeg) firstNeg = { date: d, v };
+  }
+  return { start, end, np, pay, perDay, events, pts, low, firstNeg, final: v };
+}
+function lineChart(pts, w, h, opt = {}) {
+  if (pts.length < 2) return '';
+  const vals = pts.map(p => p.v), min = Math.min(0, ...vals), max = Math.max(0, ...vals), pad = opt.pad || 6, top = 6, bot = opt.axis ? 18 : 4;
+  const X = i => pad + i * (w - 2 * pad) / (pts.length - 1), Y = v => top + (max - v) * (h - top - bot) / ((max - min) || 1);
+  const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
+  const area = path + ` L${X(pts.length - 1).toFixed(1)} ${Y(Math.max(min, 0)).toFixed(1)} L${X(0).toFixed(1)} ${Y(Math.max(min, 0)).toFixed(1)} Z`;
+  const neg = min < 0 ? `<rect x="0" y="${Y(0).toFixed(1)}" width="${w}" height="${(Y(min) - Y(0)).toFixed(1)}" fill="var(--crit)" opacity=".08"/>` : '';
+  const ticks = opt.axis ? [0, Math.floor((pts.length - 1) / 2), pts.length - 1].map((i, k) => `<text x="${X(i).toFixed(1)}" y="${h - 4}" font-size="10.5" fill="var(--ink-2)" text-anchor="${k === 0 ? 'start' : k === 2 ? 'end' : 'middle'}">${opt.label ? opt.label(pts[i]) : fmtDM(pts[i].date)}</text>`).join('') : '';
+  const marks = (opt.marks || []).map(m => { const i = pts.findIndex(p => p.date === m.date); return i < 0 ? '' : `<circle cx="${X(i).toFixed(1)}" cy="${Y(pts[i].v).toFixed(1)}" r="3.5" fill="${m.color || 'var(--bar)'}" stroke="var(--surface)" stroke-width="1.5"/>`; }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" role="img" aria-label="${esc(opt.aria || 'Chart')}" style="display:block;overflow:visible">${neg}
+    <line x1="0" x2="${w}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="${min < 0 ? 'var(--crit)' : 'var(--line)'}" stroke-dasharray="${min < 0 ? '4 3' : ''}" stroke-width="1"/>
+    <path d="${area}" fill="var(--bar)" opacity=".10"/><path d="${path}" fill="none" stroke="var(--bar)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>${marks}${ticks}</svg>`;
+}
+function forecastCard() {
+  const f = forecast(); if (!f) return '';
+  const warn = f.firstNeg ? `<p class="fcwarn">${ICON.over}<span>You could run short around <b>${fmtDM(f.firstNeg.date)}</b>, by up to <b class="num">${naira(-f.low.v)}</b>.</span></p>`
+    : f.low.v < f.perDay * 5 && f.low.v < f.start ? `<p class="fcwarn near">${ICON.near}<span>It gets tight around <b>${fmtDM(f.low.date)}</b>: lowest <b class="num">${naira(f.low.v)}</b>.</span></p>` : '';
+  return `<section class="card fc"><button class="cardbtn" data-act="openForecast" aria-label="Open the cash-flow forecast">
+    <div class="card-head" style="margin-bottom:4px"><h2>Cash-flow forecast</h2><small>to ${fmtDM(f.end)} ›</small></div>
+    <div class="kpis2"><div><span>Cash now</span><b class="num">${naira(f.start)}</b></div><div><span>Lowest point</span><b class="num ${f.low.v < 0 ? 'neg' : ''}">${naira(f.low.v)}</b></div></div>
+    <div style="margin:10px 0 2px">${lineChart(f.pts, 320, 64, { aria: 'Projected cash until ' + fmtDM(f.end), marks: f.events.filter(e => e.payday).map(e => ({ date: e.date, color: 'var(--good)' })) })}</div>
+    ${warn}</button></section>`;
+}
+function openForecast() {
+  const f = forecast(); if (!f) return;
+  const byDate = {}; f.events.forEach(e => { (byDate[e.date] ||= []).push(e); });
+  const ev = Object.keys(byDate).sort().map(d => { const p = f.pts.find(x => x.date === d); return byDate[d].map(e => `<div class="item"><div class="mid"><div class="t1">${esc(e.label)}</div><div class="t2">${fmtDay(d)} · balance after: <span class="num ${p && p.v < 0 ? 'neg' : ''}">${naira(p ? p.v : 0)}</span></div></div><div class="amt num ${e.v > 0 ? 'inc' : ''}">${e.v > 0 ? '+' : '−'}${naira(Math.abs(e.v))}</div></div>`).join(''); }).join('');
+  openSheet(`<div class="phead"><h3>Cash-flow forecast</h3><button class="x" data-close>×</button></div>
+    <p class="note" style="margin-top:0">Money in your spending accounts (not savings) from today to ${fmtShort(f.end)}, if things go as usual.</p>
+    <div class="fcbig">${lineChart(f.pts, 340, 170, { axis: true, aria: 'Projected cash balance by day', marks: [...f.events.filter(e => e.payday).map(e => ({ date: e.date, color: 'var(--good)' })), { date: f.low.date, color: f.low.v < 0 ? 'var(--crit)' : 'var(--warn)' }] })}</div>
+    ${f.firstNeg ? `<p class="fcwarn">${ICON.over}<span>At this rate you run short on <b>${fmtDay(f.firstNeg.date)}</b>, and the gap reaches <b class="num">${naira(-f.low.v)}</b> by ${fmtDM(f.low.date)}. Spending about <b class="num">${naira(Math.ceil(-f.low.v / Math.max(1, daysBetween(todayISO(), f.low.date))))}</b> less a day, or moving bills after payday, would close it.</span></p>`
+      : `<p class="note"><span class="st ok">${ICON.ok} No shortfall expected.</span> Lowest point: <b class="num">${naira(f.low.v)}</b> on ${fmtDM(f.low.date)}.</p>`}
+    ${(() => { const c = S.setup.accounts.filter(a => isCash(a.name)), n = c.filter(a => !(S.prefs.recon || {})[a.name]).length; return n ? `<p class="note">${n} of your ${c.length} spending accounts haven’t had a <b>balance check</b>, so money that was in them before you started tracking isn’t counted and the forecast may look lower than it is. Do a check from Accounts.</p>` : ''; })()}
+    <div class="kv"><span>Cash now</span><span class="num"><b>${naira(f.start)}</b></span></div>
+    <div class="kv"><span>Usual day-to-day spending</span><span class="num">${naira(f.perDay)} a day</span></div>
+    ${f.np ? `<div class="kv"><span>Next payday</span><span class="num">${fmtDM(f.np)} · ${f.pay.v >= 0 ? '+' : '−'}${naira(Math.abs(f.pay.v))} to spending accounts</span></div>` : ''}
+    <div class="kv"><span>Expected on ${fmtDM(f.end)}</span><span class="num"><b>${naira(f.final)}</b></span></div>
+    <div class="day">What’s coming up</div>${ev ? `<div class="list">${ev}</div>` : '<p class="note">No bills or paydays in this period.</p>'}
+    <details style="margin-top:10px"><summary>How this is worked out</summary><ol class="steps">
+      <li>Starts from what your spending accounts hold today (using your balance checks where you’ve done them).</li>
+      <li>Takes off your usual day-to-day spending, from the last 30 days (bills and payday entries left out).</li>
+      <li>Takes off each bill on its due date, and adds payday using your payday list${f.pay && !f.pay.fromList ? ' (empty, so your last payday’s entries are used)' : ''}.</li>
+      <li>Savings, money lent and money borrowed aren’t counted as cash.</li></ol></details>`);
+}
+
+/* Savings goals */
+const goals = () => (S.prefs.goals ||= []);
+function goalSaved(g) { if (g.account && S.setup.accounts.some(a => a.name === g.account)) return Math.max(0, balancesAt(todayISO())[g.account] || 0); return +g.saved || 0; }
+function monthsLeft(date) { if (!date) return null; const t = todayISO(); if (date <= t) return 0; const [y1, m1, d1] = isoParts(t), [y2, m2, d2] = isoParts(date); return Math.max(1, (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0)); }
+function goalInfo(g) {
+  const saved = goalSaved(g), target = +g.target || 0, left = Math.max(0, target - saved), pct = target ? Math.min(1, saved / target) : 0, ml = monthsLeft(g.date);
+  const perMonth = left > 0 && ml ? Math.ceil(left / ml) : 0;
+  return { saved, target, left, pct, ml, perMonth, done: left <= 0, late: g.date && g.date < todayISO() && left > 0 };
+}
+function goalsSection() {
+  const list = goals();
+  const row = g => { const i = goalInfo(g); return `<button class="goal" data-act="openGoal" data-id="${g.id}">
+    <div class="l1"><b>${esc(g.name)}</b><span class="num">${naira(i.saved)} <span style="color:var(--ink-2)">of ${naira(i.target)}</span></span></div>
+    <div class="track"><div class="fill" style="width:${Math.max(i.pct * 100, i.pct > 0 ? 2 : 0)}%;background:${i.done ? 'var(--good)' : i.late ? 'var(--crit)' : 'var(--bar)'}"></div></div>
+    <div class="l2"><span>${i.done ? '<span class="st ok">' + ICON.ok + ' Reached</span>' : g.date ? (i.late ? 'Target date passed' : 'By ' + fmtShort(g.date)) : 'No target date'}</span><span class="num">${i.done ? '' : i.perMonth ? naira(i.perMonth) + ' a month' : naira(i.left) + ' to go'}</span></div></button>`; };
+  return `<section class="card"><div class="card-head"><h2>Savings goals</h2><small>${list.length || ''}</small></div>
+    ${list.length ? list.map(row).join('') : '<p class="note" style="margin-top:0">Saving for rent, a laptop or an emergency fund? Set a target and date, and see how much to put away each month.</p>'}
+    <button class="btn sec" style="margin-top:10px" data-act="newGoal">Add a goal</button></section>`;
+}
+function openGoalForm(g) {
+  const v = g || { name: '', target: '', date: '', account: '', saved: 0 }, accts = S.setup.accounts.filter(a => !['Lent', 'Borrowed'].includes(a.type));
+  sheetCtx = { goalForm: true, id: g ? g.id : null, confirmDel: false };
+  openSheet(`<div class="phead"><h3>${g ? 'Edit goal' : 'New savings goal'}</h3><button class="x" data-close>×</button></div>
+    <div class="fld"><label for="gl-name">What are you saving for?</label><input class="in" id="gl-name" maxlength="40" value="${esc(v.name)}" placeholder="e.g. Emergency fund"></div>
+    <div class="fld"><label for="gl-target">Target amount</label><input class="in" id="gl-target" inputmode="decimal" data-money value="${v.target ? NF.format(v.target) : ''}"></div>
+    <div class="fld"><label for="gl-date">Target date (optional)</label><input type="date" class="in" id="gl-date" value="${v.date || ''}" min="${todayISO()}"></div>
+    <div class="fld"><label for="gl-acc">Track it with</label><select class="in" id="gl-acc"><option value="">Amounts I add myself</option>${accts.map(a => `<option ${a.name === v.account ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
+      <div class="hint">Pick a savings account and its balance is the amount saved.</div></div>
+    <div class="fld" id="gl-savedf" ${v.account ? 'hidden' : ''}><label for="gl-saved">Saved so far</label><input class="in" id="gl-saved" inputmode="decimal" data-money value="${v.saved ? NF.format(v.saved) : ''}" placeholder="0"></div>
+    <div class="err" id="gl-err"></div><button class="btn" data-act="saveGoal">Save goal</button>
+    ${g ? '<button class="btn danger" data-act="delGoal">Delete goal</button>' : ''}`, sheetCtx);
+}
+function saveGoal() {
+  const err = m => { $('#gl-err').textContent = m; }, name = $('#gl-name').value.trim(), target = readAmount($('#gl-target').value);
+  if (!name) return err('Give the goal a name.'); if (!(target > 0)) return err('Enter a target above zero.');
+  const g = { id: sheetCtx.id || newId(), name, target, date: $('#gl-date').value || '', account: $('#gl-acc').value, saved: Math.max(0, readAmount($('#gl-saved').value) || 0) };
+  const i = goals().findIndex(x => x.id === g.id); if (i >= 0) goals()[i] = { ...goals()[i], ...g }; else goals().push(g);
+  saveCache(); closeSheet(); render(); toast('Goal saved');
+}
+function openGoal(id) {
+  const g = goals().find(x => x.id === id); if (!g) return; const i = goalInfo(g);
+  sheetCtx = { goalView: true, id };
+  const onList = tpl().some(l => l.goalId === g.id);
+  openSheet(`<div class="phead"><h3>${esc(g.name)}</h3><button class="x" data-close>×</button></div>
+    <div class="track" style="height:12px;margin:2px 0 12px"><div class="fill" style="width:${i.pct * 100}%;background:${i.done ? 'var(--good)' : 'var(--bar)'}"></div></div>
+    <div class="kv"><span>Saved</span><span class="num"><b>${naira(i.saved)}</b> · ${Math.round(i.pct * 100)}%</span></div>
+    <div class="kv"><span>Target</span><span class="num">${naira(i.target)}${g.date ? ' by ' + fmtShort(g.date) : ''}</span></div>
+    <div class="kv"><span>Still to save</span><span class="num">${naira(i.left)}</span></div>
+    ${i.perMonth ? `<div class="kv"><span>Needed each month</span><span class="num"><b>${naira(i.perMonth)}</b> for ${i.ml} month${i.ml > 1 ? 's' : ''}</span></div>` : ''}
+    <p class="note">${g.account ? 'Tracked with your <b>' + esc(g.account) + '</b> balance.' : 'You update the amount saved yourself.'}</p>
+    ${!g.account && !i.done ? `<div class="addrow"><input class="in" id="gl-add" inputmode="decimal" data-money placeholder="Amount you’ve put aside"><button data-act="goalAdd">Add</button></div>` : ''}
+    ${i.perMonth && !i.done ? `<button class="btn" data-act="goalToPayday">${onList ? 'Update' : 'Add'} “save ${naira(i.perMonth)} a month” on my payday list</button>` : ''}
+    <button class="btn sec" data-act="editGoal" data-id="${g.id}">Edit goal</button>`, sheetCtx);
+}
+function goalToPayday() {
+  const g = goals().find(x => x.id === sheetCtx.id), i = goalInfo(g), existing = tpl().find(l => l.goalId === g.id);
+  if (existing) { openTplItem({ ...existing, amount: i.perMonth }, 'settings'); return; }
+  const cash = S.setup.accounts.filter(a => isCash(a.name)), sav = S.setup.accounts.filter(a => a.type === 'Savings');
+  const from = (tpl().find(l => l.kind === 'income') || {}).account || (cash[0] || {}).name || '', to = g.account || (sav[0] || {}).name || '';
+  openTplItem({ kind: 'transfers', from, to: to !== from ? to : '', desc: 'Save for ' + g.name, amount: i.perMonth, fee: 0, goalId: g.id }, 'settings');
+  toast('Check the accounts, then tap Save', 3000);
+}
+/* Net worth, per currency */
+const assets = () => (S.prefs.assets ||= []);
+function netWorthAt(date) {
+  const b = balancesAt(date); let acc = 0; for (const n in b) acc += b[n];
+  let owed = 0, owe = 0;
+  for (const d of debts()) { if (d.account || (date && d.date > date)) continue; const paid = (d.payments || []).filter(p => !p.account && (!date || !p.date || p.date <= date)).reduce((s, p) => s + (+p.amount || 0), 0); const forgiven = d.settled && debtPaid(d) < d.amount, left = forgiven ? 0 : Math.max(0, d.amount - paid); if (d.dir === 'lent') owed += left; else owe += left; }
+  const other = assets().reduce((s, a) => s + (a.kind === 'liability' ? -1 : 1) * (+a.value || 0), 0);
+  return { acc, owed, owe, other, total: acc + owed - owe + other };
+}
+function netWorthTrend() {
+  const firstMonth = Object.keys(S.months).sort()[0]; if (!firstMonth) return [];
+  const t = todayISO(), out = []; let [y, m] = firstMonth.split('-').map(Number);
+  const months = []; while (true) { const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); if (end >= t) { months.push(t); break; } months.push(end); m++; if (m > 12) { m = 1; y++; } }
+  for (const d of months.slice(-12)) out.push({ date: d, v: netWorthAt(d).total });
+  return out;
+}
+function netWorthCard() {
+  const nw = netWorthAt(todayISO()), tr = netWorthTrend(), prev = tr.length > 1 ? tr[tr.length - 2].v : null;
+  const ch = prev == null ? '' : `<span class="dl ${nw.total >= prev ? 'good' : 'bad'}">${nw.total >= prev ? '▲' : '▼'} ${naira(Math.abs(nw.total - prev))} since ${fmtDM(tr[tr.length - 2].date)}</span>`;
+  return `<section class="card"><button class="cardbtn" data-act="openNetWorth" aria-label="Open net worth">
+    <div class="card-head"><h2>Net worth · ${esc(CUR.code)}</h2><small>details ›</small></div>
+    <div class="big num" style="font-size:30px;font-weight:800;letter-spacing:-.02em">${naira(nw.total)}</div>
+    <div class="sub" style="font-size:13px;color:var(--ink-2)">What you own minus what you owe, in ${esc(CUR.code)} only. ${ch}</div>
+    ${tr.length > 1 ? `<div style="margin-top:10px">${lineChart(tr, 320, 60, { aria: 'Net worth by month' })}</div>` : ''}</button></section>`;
+}
+function openNetWorth() {
+  const nw = netWorthAt(todayISO()), tr = netWorthTrend(), b = balancesAt(todayISO());
+  const acctRows = S.setup.accounts.map(a => `<div class="kv"><span>${esc(a.name)}<small style="display:block;color:var(--muted);font-size:12px">${esc(a.type || '')}</small></span><span class="num ${b[a.name] < 0 ? 'neg' : ''}">${naira(b[a.name] || 0)}</span></div>`).join('');
+  const other = assets().map(a => `<div class="item"><div class="mid"><div class="t1">${esc(a.name)}</div><div class="t2">${a.kind === 'liability' ? 'Something you owe' : 'Something you own'}</div></div><span class="amt num ${a.kind === 'liability' ? 'neg' : ''}">${a.kind === 'liability' ? '−' : ''}${naira(a.value)}</span><button class="rm" data-act="editAsset" data-id="${a.id}" aria-label="Edit">✎</button></div>`).join('');
+  openSheet(`<div class="phead"><h3>Net worth · ${esc(CUR.code)}</h3><button class="x" data-close>×</button></div>
+    <div class="big num" style="font-size:32px;font-weight:800">${naira(nw.total)}</div>
+    <p class="note" style="margin-top:2px">${esc(CUR.name)} only. Each currency has its own net worth; nothing is converted.</p>
+    ${tr.length > 1 ? `<div class="fcbig">${lineChart(tr, 340, 150, { axis: true, aria: 'Net worth at the end of each month', label: p => MON[isoParts(p.date)[1] - 1] })}</div>` : ''}
+    <div class="day">Accounts · ${naira(nw.acc)}</div>${acctRows}
+    ${nw.owed || nw.owe ? `<div class="day">Lent &amp; borrowed (not linked to an account)</div><div class="kv"><span>Owed to you</span><span class="num">${naira(nw.owed)}</span></div><div class="kv"><span>You owe</span><span class="num neg">−${naira(nw.owe)}</span></div>` : ''}
+    <div class="day">Other things you own or owe · ${naira(nw.other)}</div>
+    ${other ? `<div class="list">${other}</div>` : '<p class="note" style="margin-top:0">Add land, a car, gold, a pension, or loans like a car loan, so your net worth is complete.</p>'}
+    <button class="btn sec" style="margin-top:12px" data-act="newAsset">Add something you own or owe</button>
+    <p class="note">Account balances count only what’s been tracked, plus any balance checks you’ve done.</p>`);
+}
+function openAssetForm(a) {
+  const v = a || { name: '', value: '', kind: 'asset' };
+  sheetCtx = { assetForm: true, id: a ? a.id : null, kind: v.kind, confirmDel: false };
+  const draw = () => openSheet(`<div class="phead"><h3>${a ? 'Edit' : 'Add'} ${sheetCtx.kind === 'liability' ? 'something you owe' : 'something you own'}</h3><button class="x" data-close>×</button></div>
+    <div class="seg" style="grid-template-columns:1fr 1fr"><button type="button" class="${sheetCtx.kind === 'asset' ? 'on' : ''}" data-act="assetKind" data-v="asset">I own it</button><button type="button" class="${sheetCtx.kind === 'liability' ? 'on' : ''}" data-act="assetKind" data-v="liability">I owe it</button></div>
+    <div class="fld"><label for="as-name">Name</label><input class="in" id="as-name" maxlength="40" value="${esc(v.name)}" placeholder="${sheetCtx.kind === 'liability' ? 'e.g. Car loan' : 'e.g. Land in Ibadan'}"></div>
+    <div class="fld"><label for="as-val">${sheetCtx.kind === 'liability' ? 'Amount still owed' : 'What it’s worth today'} (${esc(CUR.code)})</label><input class="in" id="as-val" inputmode="decimal" data-money value="${v.value ? NF.format(v.value) : ''}"></div>
+    <div class="err" id="as-err"></div><button class="btn" data-act="saveAsset">Save</button>${a ? '<button class="btn danger" data-act="delAsset">Delete</button>' : ''}`, sheetCtx);
+  sheetCtx.draw = () => { v.name = $('#as-name').value; v.value = readAmount($('#as-val').value) || ''; draw(); };
+  draw();
+}
+function saveAsset() {
+  const name = $('#as-name').value.trim(), value = readAmount($('#as-val').value);
+  if (!name) { $('#as-err').textContent = 'Give it a name.'; return; } if (!(value >= 0)) { $('#as-err').textContent = 'Enter an amount.'; return; }
+  const a = { id: sheetCtx.id || newId(), name, value, kind: sheetCtx.kind };
+  const i = assets().findIndex(x => x.id === a.id); if (i >= 0) assets()[i] = a; else assets().push(a);
+  saveCache(); render(); openNetWorth(); toast('Saved');
+}
 
 Store.init();
 if (!IS_NATIVE && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

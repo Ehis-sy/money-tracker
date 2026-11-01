@@ -1,7 +1,7 @@
 // Keeps the app working offline. Always asks GitHub for the newest files first (skipping the browser's
 // 10-minute cache), and only falls back to the saved copy when there's no internet.
-const CACHE = 'money-tracker-v2';
-const FILES = ['./', './index.html', './jszip.min.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const CACHE = 'money-tracker-v3';
+const FILES = ['./', './index.html', './jszip.min.js', './jspdf.umd.min.js', './jspdf.plugin.autotable.min.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' }))))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
