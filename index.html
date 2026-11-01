@@ -427,7 +427,7 @@ const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = iso
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtCyc = iso => { const [y, m, d] = isoParts(iso); return d + ' ' + MON[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '2.2', APP_LABEL = '2.2 Beta';
+const APP_VER = '2.3', APP_LABEL = '2.3 Beta';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -1379,9 +1379,10 @@ if (IS_NATIVE) {
     else NP.App.exitApp();
   });
   NP.App.addListener('appStateChange', st => {
-    if (!st.isActive) { UI.hiddenAt = Date.now(); scheduleReminders(); }
+    if (!st.isActive) { UI.hiddenAt = Date.now(); bioBusy = false; bioSeq++; scheduleReminders(); }
     else {
       if (getPin() && !UI.locked && UI.hiddenAt && Date.now() - UI.hiddenAt > 60000) lockApp();
+      else if (UI.locked && lockMode === 'pin' && lsGet(BIO_KEY) && !UI.forceUpdate) setTimeout(() => { if (!document.hidden) bioUnlock(); }, 500); // still locked: ask for the fingerprint again
       if (!UI.lastUpdCheck || Date.now() - UI.lastUpdCheck > 10 * 60000) checkUpdate();
       setTimeout(autoFolderBackup, 3000);
     }
@@ -1999,23 +2000,23 @@ async function enableBio() {
     lsSet(BIO_KEY, { id: b64u(cred.rawId) }); render(); toast('Fingerprint unlock is on');
   } catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Fingerprint setup was cancelled.' : 'Couldn’t set up fingerprint on this phone.', 4000); }
 }
-let bioBusy = false;
-async function bioUnlock() {
-  const b = lsGet(BIO_KEY); if (!b || bioBusy || !UI.locked) return; bioBusy = true;
-  if (IS_NATIVE) {
-    try { await NP.Bio.verifyIdentity({ reason: 'Unlock Money Tracker', title: 'Money Tracker', negativeButtonText: 'Use PIN' }); unlockApp(); }
-    catch (e) { if (UI.locked && lockMode === 'pin') drawLock(''); }
-    finally { bioBusy = false; }
-    return;
-  }
+// The fingerprint prompt can be dropped by Android when the app goes to the background or resumes; the plugin call
+// then never finishes. So a stuck attempt never blocks a new one: tapping "Use fingerprint" always starts afresh.
+let bioBusy = false, bioSeq = 0;
+async function bioUnlock(force) {
+  const b = lsGet(BIO_KEY); if (!b || !UI.locked) return;
+  if (bioBusy && force !== true) return;
+  const my = ++bioSeq; bioBusy = true;
+  const quiet = e => /cancel|abort|NotAllowed|^1[03]$|negative|user/i.test(String((e && (e.code || e.name)) || '') + ' ' + String((e && e.message) || ''));
   try {
-    await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: 'public-key', id: unb64u(b.id) }], userVerification: 'required', timeout: 60000 } });
-    unlockApp();
-  } catch (e) { if (UI.locked && lockMode === 'pin') drawLock(e && e.name === 'NotAllowedError' ? '' : 'Fingerprint didn’t work. Use your PIN.'); }
-  finally { bioBusy = false; }
+    if (IS_NATIVE) await NP.Bio.verifyIdentity({ reason: 'Unlock Money Tracker', title: 'Money Tracker', negativeButtonText: 'Use PIN' });
+    else await navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: 'public-key', id: unb64u(b.id) }], userVerification: 'required', timeout: 60000 } });
+    if (UI.locked) unlockApp();
+  } catch (e) { if (my === bioSeq && UI.locked && lockMode === 'pin') drawLock(quiet(e) ? '' : 'Fingerprint didn’t work. Try again or use your PIN.'); }
+  finally { if (my === bioSeq) bioBusy = false; }
 }
 function unlockApp() { UI.locked = false; pinEntry = ''; $('#lock').hidden = true; render(); }
-function lockApp(noBio) { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); closePhoto(); drawLock(); $('#lock').hidden = false; render(); if (lsGet(BIO_KEY) && !noBio) setTimeout(bioUnlock, 350); }
+function lockApp(noBio) { UI.locked = true; pinEntry = ''; lockMode = 'pin'; closeSheet(); closePhoto(); drawLock(); $('#lock').hidden = false; render(); if (lsGet(BIO_KEY) && !noBio) setTimeout(() => { if (!document.hidden) bioUnlock(); }, 500); }
 function drawLock(err = '') {
   const box = $('#lockbox');
   if (lockMode === 'forgot') {
@@ -2481,7 +2482,7 @@ document.addEventListener('click', async ev => {
   else if (a === 'enableBioClose') { closeSheet(); enableBio(); }
   else if (a === 'enableBio') enableBio();
   else if (a === 'disableBio') { try { localStorage.removeItem(BIO_KEY); } catch (e) {} render(); toast('Fingerprint unlock is off. Your PIN still works.'); }
-  else if (a === 'bioUnlock') bioUnlock();
+  else if (a === 'bioUnlock') bioUnlock(true);
   else if (a === 'forgotPin') { lockMode = 'forgot'; drawLock(); }
   else if (a === 'lockBack') { lockMode = 'pin'; pinEntry = ''; drawLock(); }
   else if (a === 'resetApp') {
