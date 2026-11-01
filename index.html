@@ -163,6 +163,23 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 .cchip b{color:var(--ink)}
 .cchip.on{background:var(--ink);border-color:var(--ink);color:var(--surface)} .cchip.on b{color:var(--surface)}
 .cchip.add{border-style:dashed;color:var(--accent)}
+.who{display:flex;align-items:center;gap:10px;background:none;border:none;padding:0;text-align:left;min-width:0}
+.hi{display:flex;flex-direction:column;min-width:0}
+.hi small{font-size:12.5px;color:var(--ink-2);font-weight:600}
+.hi b{font-size:18px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
+.ava{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:16px;flex:none;background-size:cover;background-position:center;overflow:hidden}
+.ava.lg{width:96px;height:96px;font-size:34px;margin:0 auto}
+.ava.md{width:64px;height:64px;font-size:24px;margin:0 auto}
+.avapick{position:relative;display:block;margin:6px auto 4px;background:none;border:none;padding:0}
+.avapick .cam{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;border:3px solid var(--surface)}
+.avapick .cam svg{width:15px;height:15px}
+.ob{max-width:420px;margin:0 auto;text-align:center}
+.ob h2{font-size:22px;margin:14px 0 4px;letter-spacing:-.02em}
+.ob .fld{text-align:left}
+.steps-dots{display:flex;gap:6px;justify-content:center;margin:4px 0 10px}
+.steps-dots i{width:22px;height:4px;border-radius:2px;background:var(--line)}
+.steps-dots i.on{background:var(--accent)}
+[hidden]{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .toprow .cycle{min-width:0;flex:1}
@@ -207,7 +224,7 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 <body>
 <div id="app">
   <header class="top">
-    <h1>Money Tracker</h1>
+    <button class="who" id="who" data-act="profile" aria-label="Your profile"><span class="ava" id="hava"></span><span class="hi"><small id="hhi">Money Tracker</small><b id="hname"></b></span></button>
     <div class="sync" id="sync"><i></i><span>Loading…</span></div>
   </header>
   <div class="curbar" id="curbar" hidden></div>
@@ -223,6 +240,7 @@ nav.tabs .dot{position:absolute;top:3px;left:calc(50% + 8px);min-width:16px;heig
 <div class="overlay" id="overlay"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
 <div id="toast" role="status"></div>
 <div id="lock" hidden><div class="lockbox" id="lockbox"></div></div>
+<input type="file" id="photoIn" class="sr" accept="image/*">
 <input type="file" id="fileIn" class="sr" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
 
 <script>/* Blank Money Tracker workbook (no personal data) used by Save to Excel when a tracker has no file of its own */
@@ -264,7 +282,7 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 const daysBetween = (a, b) => { const [y1,m1,d1] = isoParts(a), [y2,m2,d2] = isoParts(b); return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000); };
 const addMonth = iso => { const [y,m,d] = isoParts(iso); const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return new Date(Date.UTC(y, m, Math.min(d, dim))).toISOString().slice(0, 10); };
 const fmtDM = iso => { const [y,m,d] = isoParts(iso); return d + ' ' + MON[m - 1]; };
-const APP_VER = '1.3';
+const APP_VER = '1.4';
 const APP_VERSION = APP_VER + ' · 1 Nov 2026';
 const DASH_CAT_ROWS = 18, DASH_ACCT_ROWS = 12; // rows the Excel dashboard has room for
 
@@ -735,6 +753,9 @@ const statusColor = { ok: 'var(--good)', near: 'var(--warn)', over: 'var(--crit)
 function render() {
   const v = $('#view');
   if (!UI.ready) return;
+  renderHeader();
+  if (!UI.locked && setupNeeded()) { $('#curbar').hidden = true; $('#tabs').hidden = true; $('#fab').hidden = true; $('#sync').style.visibility = 'hidden'; v.innerHTML = viewSetup(); return; }
+  $('#sync').style.visibility = '';
   renderCurbar();
   if (UI.locked) { $('#tabs').hidden = true; $('#fab').hidden = true; v.innerHTML = ''; return; }
   updateSyncPill();
@@ -1149,6 +1170,92 @@ async function shareApp() {
   } catch (e) {}
 }
 
+
+/* ---------- profile & first-run setup ---------- */
+const PROFILE_KEY = 'mt-profile';
+const getProfile = () => lsGet(PROFILE_KEY);
+const firstName = n => String(n || '').trim().split(/\s+/)[0] || '';
+const initials = n => String(n || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+function avatarHtml(pr, cls = '') {
+  if (pr && pr.photo) return `<span class="ava ${cls}" style="background-image:url('${pr.photo}')"></span>`;
+  return `<span class="ava ${cls}">${esc(initials(pr && pr.name))}</span>`;
+}
+function renderHeader() {
+  const pr = getProfile(), a = $('#hava');
+  if (pr && pr.name) {
+    a.outerHTML = avatarHtml(pr).replace('<span class="ava ', '<span id="hava" class="ava ');
+    $('#hhi').textContent = 'Welcome back,'; $('#hname').textContent = firstName(pr.name); $('#who').disabled = false;
+  } else { a.style.display = 'none'; $('#hhi').textContent = ''; $('#hname').textContent = 'Money Tracker'; $('#who').disabled = true; }
+}
+const setupNeeded = () => !(getProfile() && getProfile().name && getPin());
+// Shrink a chosen photo to a small square so it fits comfortably in the phone's storage.
+function readPhoto(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const S = 256, c = document.createElement('canvas'); c.width = c.height = S; const k = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, S, S); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.85)); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('That image couldn’t be opened.')); };
+    img.src = url;
+  });
+}
+let photoTarget = null;
+function pickPhoto(target) { photoTarget = target; const f = $('#photoIn'); f.value = ''; f.click(); }
+function viewSetup() {
+  const ob = UI.ob ||= { step: 'details', name: (getProfile() || {}).name || '', photo: (getProfile() || {}).photo || null, entry: '', first: '' };
+  const dots = n => getPin() ? '' : `<div class="steps-dots">${[1, 2].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>`;
+  if (ob.step === 'details') return `<section class="card ob">${dots(1)}
+    <button class="avapick" data-act="obPhoto" aria-label="Add a profile photo">${avatarHtml({ name: ob.name, photo: ob.photo }, 'lg')}<span class="cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span></button>
+    <p class="note" style="text-align:center;margin:4px 0 0">${ob.photo ? '<button class="linkbtn" style="display:inline;padding:0" data-act="obPhotoRemove">Remove photo</button>' : 'Add a photo (optional)'}</p>
+    <h2>${S.setup ? 'Let’s set up your profile' : 'Welcome to Money Tracker'}</h2>
+    <p class="note" style="text-align:center;margin:0 0 16px">Your details stay on this phone. Nothing is sent anywhere.</p>
+    <div class="fld"><label for="obname">Your name</label><input class="in" id="obname" maxlength="40" autocomplete="name" placeholder="e.g. Augustine Soro" value="${esc(ob.name)}"></div>
+    <div class="err" id="ob-err"></div>
+    <button class="btn" data-act="obNext">Continue</button></section>`;
+  const confirming = !!ob.first;
+  return `<section class="card ob">${dots(2)}${avatarHtml({ name: ob.name, photo: ob.photo }, 'md')}
+    <h2>${confirming ? 'Type your PIN again' : 'Create a 4-digit PIN'}</h2>
+    <p class="note" style="text-align:center;margin:0">${confirming ? 'Just to be sure.' : 'You’ll use it to open the app, so only you can see your finances.'}</p>
+    <div class="dots ${UI.obErr ? 'shake' : ''}">${[0, 1, 2, 3].map(i => `<i class="${i < ob.entry.length ? 'f' : ''}"></i>`).join('')}</div>
+    <div class="lk-err">${esc(UI.obErr || '')}</div>
+    <div class="pad" style="max-width:300px;margin:6px auto 0">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-obkey="${n}">${n}</button>`).join('')}<button class="txt" data-act="obBack">Back</button><button data-obkey="0">0</button><button class="txt" data-obkey="del" aria-label="Delete">⌫</button></div>
+    <p class="note" style="text-align:center;margin-top:16px">If you ever forget it, the only way back in is to reset the app, which deletes your entries on this phone. Save to Excel regularly so you always have a backup.</p></section>`;
+}
+async function obKey(k) {
+  const ob = UI.ob; UI.obErr = '';
+  if (k === 'del') ob.entry = ob.entry.slice(0, -1); else if (ob.entry.length < 4) ob.entry += k;
+  if (ob.entry.length === 4) {
+    if (!ob.first) { ob.first = ob.entry; ob.entry = ''; }
+    else if (ob.entry !== ob.first) { ob.first = ''; ob.entry = ''; UI.obErr = 'The PINs didn’t match. Start again.'; }
+    else {
+      const salt = newId(); lsSet(PIN_KEY, { salt, hash: await hashPin(ob.entry, salt) });
+      lsSet(PROFILE_KEY, { name: ob.name, photo: ob.photo || null });
+      UI.ob = null; UI.obErr = ''; render(); window.scrollTo(0, 0);
+      toast('Welcome, ' + firstName(ob.name) + '! Your PIN is set.', 3500);
+      if (UI.bioAvail && !lsGet(BIO_KEY)) setTimeout(() => openSheet(`<div class="phead"><h3>Use your fingerprint too?</h3><button class="x" data-close>×</button></div>
+        <p class="note" style="margin-top:0">Open the app with your fingerprint instead of typing your PIN. Your PIN still works as a backup.</p>
+        <button class="btn" data-act="enableBioClose">Turn on fingerprint</button><button class="btn sec" data-close>Not now</button>`), 600);
+      return;
+    }
+  }
+  render();
+}
+function openProfile() {
+  const pr = getProfile() || {};
+  sheetCtx = { profile: true, photo: pr.photo || null };
+  drawProfile(pr.name || '');
+  $('#overlay').classList.add('open');
+}
+function drawProfile(name) {
+  const st = sheetCtx;
+  $('#panel').innerHTML = `<div class="grab"></div><div class="phead"><h3>Your profile</h3><button class="x" data-close>×</button></div>
+    <button class="avapick" data-act="profPhoto" aria-label="Change photo">${avatarHtml({ name, photo: st.photo }, 'lg')}<span class="cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span></button>
+    ${st.photo ? '<button class="linkbtn" data-act="profPhotoRemove">Remove photo</button>' : ''}
+    <div class="fld" style="margin-top:14px"><label for="prname">Your name</label><input class="in" id="prname" maxlength="40" value="${esc(name)}"></div>
+    <div class="err" id="pr-err"></div>
+    <button class="btn" data-act="saveProfile">Save</button>
+    <button class="btn sec" data-act="setPin">Change PIN</button>`;
+}
+
 /* ---------- PIN lock ---------- */
 const PIN_KEY = 'mt-pin';
 const getPin = () => lsGet(PIN_KEY);
@@ -1208,8 +1315,9 @@ function drawLock(err = '') {
       <button class="btn danger" style="margin-top:16px" data-act="resetApp">Reset app</button><button class="btn sec" data-act="lockBack">Back</button>`;
     return;
   }
-  box.innerHTML = `<div class="lk-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div>
-    <h2>Enter PIN</h2>
+  const pr = getProfile();
+  box.innerHTML = `${pr && pr.name ? avatarHtml(pr, 'md') + `<h2>Welcome back, ${esc(firstName(pr.name))}</h2><p class="note" style="text-align:center;margin:2px 0 0">Enter your PIN</p>` : `<div class="lk-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div>
+    <h2>Enter PIN</h2>`}
     <div class="dots ${err ? 'shake' : ''}">${[0, 1, 2, 3].map(i => `<i class="${i < pinEntry.length ? 'f' : ''}"></i>`).join('')}</div>
     <div class="lk-err">${esc(err)}</div>
     ${lsGet(BIO_KEY) ? '<button class="btn sec" data-act="bioUnlock" style="margin-top:6px">Use fingerprint</button>' : ''}
@@ -1226,7 +1334,7 @@ async function pressKey(k) {
   }
 }
 function openSetPin() {
-  openSheet(`<div class="phead"><h3>${getPin() ? 'Change PIN' : 'Set a PIN'}</h3><button class="x" data-close>×</button></div>
+  openSheet(`<div class="phead"><h3>Change PIN</h3><button class="x" data-close>×</button></div>
     <div class="fld"><label for="pin1">New 4-digit PIN</label><input class="in" id="pin1" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>
     <div class="fld"><label for="pin2">Type it again</label><input class="in" id="pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>
     <div class="err" id="pin-err"></div>
@@ -1239,7 +1347,7 @@ async function savePin() {
   if (!/^\d{4}$/.test(a)) return err('Use exactly 4 numbers.');
   if (a !== b) return err('The two PINs don’t match.');
   const salt = newId(); lsSet(PIN_KEY, { salt, hash: await hashPin(a, salt) });
-  closeSheet(); render(); toast('PIN set. The app will ask for it when you open it.');
+  closeSheet(); render(); toast('PIN changed');
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) UI.hiddenAt = Date.now();
@@ -1336,11 +1444,10 @@ function viewExcel() {
   <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Payday list</h2><small>${Array.isArray(S.prefs.template) && S.prefs.template.length ? S.prefs.template.length + ' entries saved' : 'not saved yet'}</small></div>
     <p class="note" style="margin:0 0 12px">The salary, allowances, bills and transfers you log every payday, all in one tap. To add something, open it in Activity and tap <b>Add to payday list</b>.</p>
     <button class="btn sec" data-act="payday">Open payday list</button></section>
-  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2>${getPin() ? '<span class="badge ok">On</span>' : ''}</div>
+  <section class="card"><div class="card-head" style="margin-bottom:6px"><h2>App lock</h2><span class="badge ok">On</span></div>
     <p class="note" style="margin:0 0 12px">${getPin() ? 'The app asks for your ' + (lsGet(BIO_KEY) ? 'fingerprint or PIN' : 'PIN') + ' when it opens, and after a minute in the background.' : 'Ask for a 4-digit PIN when the app opens, so nobody who picks up your phone can see your finances.'}</p>
     ${getPin() && UI.bioAvail ? (lsGet(BIO_KEY) ? '<div class="kv" style="margin-bottom:10px"><span>Fingerprint unlock</span><span class="st ok">' + ICON.ok + ' On</span></div><button class="btn sec" data-act="disableBio">Turn off fingerprint</button>' : '<button class="btn" data-act="enableBio">Unlock with fingerprint too</button>') : ''}
-    <button class="btn sec" data-act="setPin">${getPin() ? 'Change PIN' : 'Set a PIN'}</button>${getPin() ? '<button class="btn danger" data-act="removePin">Turn off app lock</button>' : ''}
-    ${!getPin() && UI.bioAvail ? '<p class="note">After you set a PIN, you can unlock with your fingerprint too. The PIN stays as a backup.</p>' : ''}</section>
+    <button class="btn sec" data-act="setPin">Change PIN</button></section>
   ${IS_NATIVE ? `<section class="card"><div class="card-head" style="margin-bottom:6px"><h2>Reminders</h2>${lsGet(REMIND_KEY) ? '<span class="badge ok">On</span>' : ''}</div>
     <p class="note" style="margin:0 0 12px">A nudge when entries aren’t backed up to Excel for a week, and a reminder the day before payday.</p>
     ${lsGet(REMIND_KEY) ? '<button class="btn sec" data-act="disableRem">Turn off reminders</button>' : '<button class="btn sec" data-act="enableRem">Turn on reminders</button>'}</section>` : ''}
@@ -1455,10 +1562,11 @@ function findEntry(kind, id) { return allOf(kind).find(e => e.id === id); }
 
 /* ---------- events ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key],[data-fee],[data-cur]');
+  const t = ev.target.closest('[data-tab],[data-act],[data-close],[data-seg],[data-chip],[data-key],[data-fee],[data-cur],[data-obkey]');
   if (ev.target === $('#overlay')) { closeSheet(); return; }
   if (!t) return;
   if (t.dataset.key) { pressKey(t.dataset.key); return; }
+  if (t.dataset.obkey) { obKey(t.dataset.obkey); return; }
   if (t.dataset.cur) { switchBook(t.dataset.cur); return; }
   if (t.dataset.fee !== undefined && sheetCtx && sheetCtx.form) {
     syncFormInputs();
@@ -1528,14 +1636,21 @@ document.addEventListener('click', ev => {
   else if (a === 'resetNextPayday') { delete S.prefs.nextPayday; saveCache(); closeSheet(); render(); }
   else if (a === 'setPin') openSetPin();
   else if (a === 'savePin') savePin();
-  else if (a === 'removePin') { try { localStorage.removeItem(PIN_KEY); localStorage.removeItem(BIO_KEY); } catch (e) {} render(); toast('App lock turned off'); }
+  else if (a === 'profile') openProfile();
+  else if (a === 'obPhoto' || a === 'profPhoto') pickPhoto(a);
+  else if (a === 'obPhotoRemove') { UI.ob.name = ($('#obname') || {}).value || UI.ob.name; UI.ob.photo = null; render(); }
+  else if (a === 'profPhotoRemove') { sheetCtx.photo = null; drawProfile($('#prname').value); }
+  else if (a === 'obNext') { const n = $('#obname').value.trim().replace(/\s+/g, ' '); if (!n) { $('#ob-err').textContent = 'Please type your name.'; return; } UI.ob.name = n; if (getPin()) { lsSet(PROFILE_KEY, { name: n, photo: UI.ob.photo || null }); UI.ob = null; render(); window.scrollTo(0, 0); toast('Welcome back, ' + firstName(n) + '!'); return; } UI.ob.step = 'pin'; UI.ob.entry = ''; UI.ob.first = ''; render(); window.scrollTo(0, 0); }
+  else if (a === 'obBack') { UI.ob.step = 'details'; UI.ob.entry = ''; UI.ob.first = ''; UI.obErr = ''; render(); }
+  else if (a === 'saveProfile') { const n = $('#prname').value.trim().replace(/\s+/g, ' '); if (!n) { $('#pr-err').textContent = 'Please type your name.'; return; } lsSet(PROFILE_KEY, { name: n, photo: sheetCtx.photo || null }); closeSheet(); render(); toast('Profile saved'); }
+  else if (a === 'enableBioClose') { closeSheet(); enableBio(); }
   else if (a === 'enableBio') enableBio();
   else if (a === 'disableBio') { try { localStorage.removeItem(BIO_KEY); } catch (e) {} render(); toast('Fingerprint unlock is off. Your PIN still works.'); }
   else if (a === 'bioUnlock') bioUnlock();
   else if (a === 'forgotPin') { lockMode = 'forgot'; drawLock(); }
   else if (a === 'lockBack') { lockMode = 'pin'; pinEntry = ''; drawLock(); }
   else if (a === 'resetApp') {
-    try { [...REG.list.map(b => b.key), ...REG.list.map(b => 'mt-last-' + b.code), BOOKS_KEY, LEGACY_KEY, PIN_KEY, BIO_KEY, 'mt-last'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    try { [...REG.list.map(b => b.key), ...REG.list.map(b => 'mt-last-' + b.code), BOOKS_KEY, LEGACY_KEY, PIN_KEY, BIO_KEY, PROFILE_KEY, 'mt-last'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
     REG = { active: null, list: [] }; applyAll({}); UI.locked = false; UI.cycle = null; UI.tab = 'home'; $('#lock').hidden = true; render(); toast('App reset. Load your Excel file to start again.', 4000);
   }
   else if (a === 'scope') { UI.scope = UI.scope === 'cycle' ? 'all' : 'cycle'; render(); }
@@ -1558,6 +1673,13 @@ function syncFormInputs() {
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.id === 'fileIn') { handleFile(t.files[0]); return; }
+  if (t.id === 'photoIn' && t.files[0]) {
+    readPhoto(t.files[0]).then(url => {
+      if ((photoTarget === 'obPhoto' || !photoTarget) && UI.ob) { UI.ob.name = ($('#obname') || {}).value || UI.ob.name; UI.ob.photo = url; render(); }
+      else if (photoTarget === 'profPhoto' && sheetCtx && sheetCtx.profile) { sheetCtx.photo = url; drawProfile($('#prname').value); }
+    }).catch(e => toast(e.message));
+    return;
+  }
   if (t.id === 'firstcur') { UI.firstCur = t.value; return; }
   if (t.id === 'newcur') { $('#othercur').hidden = t.value !== 'other'; return; }
   if (t.matches('#panel select[data-field]')) { syncFormInputs(); drawForm(); return; }
